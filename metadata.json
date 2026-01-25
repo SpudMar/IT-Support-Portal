@@ -1,0 +1,7 @@
+{
+  "name": "Lotus Assist IT Co-pilot",
+  "description": "An AI-First IT Support Portal designed for Lotus Assist. Features agentic reasoning for hardware/software diagnostics, empathic triage, and admin gatekeeping.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

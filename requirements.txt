@@ -1,0 +1,9 @@
+
+fastapi
+uvicorn
+httpx
+azure-identity
+msgraph-sdk
+python-dotenv
+pydantic
+aiofiles
