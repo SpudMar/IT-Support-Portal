@@ -28,6 +28,8 @@ jobs:
           node-version: '20.x'
 
       - name: npm install, build, and test
+        env:
+            GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           npm install
           npm run build
