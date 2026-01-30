@@ -7,3 +7,4 @@ msgraph-sdk
 python-dotenv
 pydantic
 aiofiles
+gunicorn
