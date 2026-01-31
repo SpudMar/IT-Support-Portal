@@ -76,8 +76,9 @@ async def upsert_ticket(ticket: Ticket):
         "field_6": ticket.availability, # Availability
         "field_7": ticket.criticality, # Criticality
         "field_8": ticket.status,    # Status
-        "field_9": json.dumps(ticket.transcript), # Transcript
-        "field_10": ticket.thinkingLog or "" # ThinkingLog
+        "field_8": ticket.status,    # Status
+        "Transcript": json.dumps(ticket.transcript), # Transcript
+        "ThinkingLog": ticket.thinkingLog or "" # ThinkingLog
     }
 
     try:
@@ -132,7 +133,8 @@ async def search_tickets(email: str):
                 f = item.fields.additional_data if item.fields else {}
                 
                 # Parse transcript from JSON string
-                transcript_raw = f.get("field_9", "[]")  # Transcript
+                # Parse transcript from JSON string
+                transcript_raw = f.get("Transcript", "[]")  # Transcript
                 try:
                     transcript = json.loads(transcript_raw) if transcript_raw else []
                 except:
