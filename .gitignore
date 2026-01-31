@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Exclude Power BI files
+PowerBi/
+*PowerBI*
