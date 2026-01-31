@@ -15,13 +15,13 @@ export const apiService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ticket),
       });
-      
+
       if (!response.ok) return null;
       const data = await response.json();
-      return data.sharepoint_id; 
+      return data.sharepoint_id;
     } catch (error) {
       console.error("Bridge Connection Failure:", error);
-      return null; 
+      return null;
     }
   },
 
@@ -36,7 +36,8 @@ export const apiService = {
         status: t.status as TicketStatus,
         category: t.category,
         criticality: t.criticality as Criticality,
-        createdAt: t.createdAt
+        createdAt: t.createdAt,
+        transcript: t.transcript || []  // Include transcript for resume
       }));
     } catch (error) {
       console.error("History fetch failed:", error);
@@ -55,6 +56,18 @@ export const apiService = {
       return response.ok;
     } catch (error) {
       return false;
+    }
+  },
+
+  async searchKnowledgeBase(query: string): Promise<import('../types').KBArticle[]> {
+    try {
+      const response = await fetch(`${API_BASE}/kb/search?q=${encodeURIComponent(query)}`);
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.articles || [];
+    } catch (error) {
+      console.error("KB Search failed:", error);
+      return [];
     }
   }
 };

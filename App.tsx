@@ -7,7 +7,7 @@ import KnowledgeBaseView from './components/KnowledgeBaseView';
 import Login from './components/Login';
 import { Ticket, TicketStatus, Criticality } from './types';
 import { apiService } from './services/apiService';
-import { LayoutDashboard, MessageSquareText, BookOpen, UserCircle, LogOut, CloudCheck, WifiOff, Loader2, History, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, BookOpen, UserCircle, LogOut, WifiOff, Loader2, History, AlertCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<'staff' | 'admin' | 'kb'>('staff');
@@ -16,7 +16,7 @@ const App: React.FC = () => {
   const [syncFailed, setSyncFailed] = useState(false);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const { instance, accounts } = useMsal();
-  
+
   // Ref to prevent multiple simultaneous ticket creations for the same session
   const isCreatingRef = useRef(false);
 
@@ -24,7 +24,7 @@ const App: React.FC = () => {
   const userName = accounts[0]?.name;
 
   const isAdmin = accounts.length > 0 && (
-    accounts[0].username.toLowerCase().includes('admin') || 
+    accounts[0].username.toLowerCase().includes('admin') ||
     accounts[0].name?.toLowerCase().includes('admin')
   );
 
@@ -44,7 +44,7 @@ const App: React.FC = () => {
           criticality: (t.criticality as Criticality) || Criticality.MEDIUM,
           createdAt: t.createdAt || Date.now(),
           adminRequired: false,
-          transcript: []
+          transcript: t.transcript || []  // Preserve transcript for resume
         }));
         setTickets(mappedHistory);
         setIsSyncing(false);
@@ -64,9 +64,9 @@ const App: React.FC = () => {
 
     setIsSyncing(true);
     setSyncFailed(false);
-    
+
     let targetTicket: Ticket;
-    
+
     setTickets(prev => {
       const existingIdx = prev.findIndex(t => t.id === activeTicketId);
       let newTickets = [...prev];
@@ -78,7 +78,7 @@ const App: React.FC = () => {
         isCreatingRef.current = true;
         const newId = `LA-${Date.now().toString().slice(-4)}`;
         setActiveTicketId(newId);
-        
+
         targetTicket = {
           id: newId,
           userName: userName || 'Staff',
@@ -125,7 +125,7 @@ const App: React.FC = () => {
     setIsSyncing(true);
     const success = await apiService.updateStatus(ticket.sharepointId, status);
     setIsSyncing(false);
-    
+
     if (success) {
       setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t));
     } else {
@@ -158,9 +158,9 @@ const App: React.FC = () => {
                         </span>
                       </div>
                       {isSyncing && (
-                         <div className="flex items-center gap-1 text-[9px] text-primary_3 font-bold uppercase">
-                           <Loader2 size={10} className="animate-spin" /> Syncing...
-                         </div>
+                        <div className="flex items-center gap-1 text-[9px] text-primary_3 font-bold uppercase">
+                          <Loader2 size={10} className="animate-spin" /> Syncing...
+                        </div>
                       )}
                     </div>
                   </div>
@@ -200,18 +200,25 @@ const App: React.FC = () => {
                   <h2 className="text-5xl font-display font-bold text-primary_1 tracking-tighter">Hi, {userName?.split(' ')[0]}.</h2>
                   <p className="text-gray-500 font-medium">How can I assist your workflow today?</p>
                 </div>
-                
-                <ChatInterface onTicketCreated={handleTicketUpdate} />
-                
+
+                <ChatInterface
+                  onTicketCreated={handleTicketUpdate}
+                  resumeTicket={tickets.find(t => t.id === activeTicketId) || null}
+                />
+
                 {tickets.length > 0 && (
                   <div className="max-w-4xl mx-auto pt-8 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-6">
-                       <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">Recent Support Sessions</h3>
-                       {syncFailed && <div className="flex items-center gap-1.5 text-primary_2 text-[10px] font-bold"><AlertCircle size={12}/> Connection Interrupted</div>}
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">Recent Support Sessions</h3>
+                      {syncFailed && <div className="flex items-center gap-1.5 text-primary_2 text-[10px] font-bold"><AlertCircle size={12} /> Connection Interrupted</div>}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {tickets.slice(0, 4).map(ticket => (
-                        <div key={ticket.id} className="bg-white p-6 rounded-2xl border shadow-sm group hover:border-primary_3 transition-all">
+                        <div
+                          key={ticket.id}
+                          onClick={() => setActiveTicketId(ticket.id)}
+                          className="bg-white p-6 rounded-2xl border shadow-sm group hover:border-primary_3 transition-all cursor-pointer hover:shadow-lg"
+                        >
                           <div className="flex justify-between items-start mb-2">
                             <span className="text-[9px] font-bold text-primary_3 uppercase tracking-[0.1em]">{ticket.category}</span>
                             <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">#{ticket.sharepointId || 'local'}</span>
@@ -222,6 +229,9 @@ const App: React.FC = () => {
                               {ticket.status}
                             </span>
                             <span className="text-[10px] text-gray-400 font-medium">{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="mt-3 text-[10px] text-primary_3 font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
+                            Click to resume →
                           </div>
                         </div>
                       ))}

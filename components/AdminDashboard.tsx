@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Ticket, TicketStatus, Message } from '../types';
-import { Search, Database, Phone, Zap, Copy, Filter, ExternalLink } from 'lucide-react';
+import { Search, Database, Phone, Zap, Copy, Filter, ExternalLink, Loader2, BookOpen } from 'lucide-react';
 import { chatWithAdminExpert } from '../services/geminiService';
 
 interface AdminDashboardProps {
@@ -16,10 +16,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ tickets, onStatusChange
   const [adminMessages, setAdminMessages] = useState<Message[]>([]);
   const [adminInput, setAdminInput] = useState('');
   const [isAdminChatLoading, setIsAdminChatLoading] = useState(false);
+  const [showKBCreator, setShowKBCreator] = useState(false);
+  const [kbSuggestion, setKbSuggestion] = useState<any>(null);
+  const [isGeneratingKB, setIsGeneratingKB] = useState(false);
+  const [isSavingKB, setIsSavingKB] = useState(false);
 
   const filteredTickets = tickets.filter(t => {
-    const matchesSearch = t.summary.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          t.userName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = t.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.userName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filter === 'All' || t.status === filter;
     return matchesSearch && matchesFilter;
   });
@@ -37,6 +41,51 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ tickets, onStatusChange
     } finally { setIsAdminChatLoading(false); }
   };
 
+  const handleGenerateKB = async () => {
+    if (!selectedTicket) return;
+    setIsGeneratingKB(true);
+    try {
+      const response = await fetch('/api/kb/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          summary: selectedTicket.summary,
+          transcript: selectedTicket.transcript,
+          category: selectedTicket.category
+        })
+      });
+      const data = await response.json();
+      setKbSuggestion(data.suggestion);
+      setShowKBCreator(true);
+    } catch (error) {
+      console.error('KB generation failed:', error);
+    } finally {
+      setIsGeneratingKB(false);
+    }
+  };
+
+  const handleSaveKB = async () => {
+    if (!kbSuggestion) return;
+    setIsSavingKB(true);
+    try {
+      const response = await fetch('/api/kb/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(kbSuggestion)
+      });
+      if (response.ok) {
+        setShowKBCreator(false);
+        setKbSuggestion(null);
+        alert('✅ Knowledge Base article created successfully!');
+      }
+    } catch (error) {
+      console.error('KB save failed:', error);
+      alert('❌ Failed to save KB article');
+    } finally {
+      setIsSavingKB(false);
+    }
+  };
+
   const sharepointListUrl = "https://lotusassist.sharepoint.com/sites/Managment/Lists/IT Incidents/AllItems.aspx";
 
   return (
@@ -46,7 +95,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ tickets, onStatusChange
           <h1 className="text-3xl font-display font-bold text-primary_1">Incident Command Center</h1>
           <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-bold">Lotus Management Portal Active</p>
         </div>
-        <button 
+        <button
           onClick={() => window.open(sharepointListUrl, '_blank')}
           className="flex items-center gap-2 px-5 py-2.5 bg-primary_1 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary_1/20 transition-transform hover:scale-105 active:scale-95"
         >
@@ -96,7 +145,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ tickets, onStatusChange
                   <td className="px-8 py-6 text-sm text-primary_1 font-medium">{ticket.summary}</td>
                   <td className="px-8 py-6">
                     <span className={`font-bold text-[10px] uppercase ${ticket.criticality === 'High' ? 'text-primary_2' : 'text-primary_3'}`}>
-                        {ticket.criticality}
+                      {ticket.criticality}
                     </span>
                   </td>
                   <td className="px-8 py-6">
@@ -138,60 +187,160 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ tickets, onStatusChange
               <button onClick={() => setSelectedTicket(null)} className="text-3xl font-light hover:text-primary_3 transition-colors px-2">×</button>
             </div>
             <div className="flex-1 p-8 overflow-y-auto bg-pale_grey/20">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
-                 <div className="bg-white p-4 rounded-xl border shadow-sm"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Current Location</p><p className="font-bold text-primary_1">{selectedTicket.location || 'Pending'}</p></div>
-                 <div className="bg-white p-4 rounded-xl border shadow-sm"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Callback Window</p><p className="font-bold text-primary_1">{selectedTicket.availability || 'Pending'}</p></div>
-                 <div className="bg-white p-4 rounded-xl border shadow-sm"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Staff Contact</p><p className="font-bold text-primary_1">{selectedTicket.userPhone || 'Pending'}</p></div>
-               </div>
-               
-               <div className="flex items-center gap-4 mb-6">
-                 <div className="flex-1 bg-white p-4 rounded-xl border shadow-sm">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-1">Ticket Status</p>
-                   <select 
-                    value={selectedTicket.status} 
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
+                <div className="bg-white p-4 rounded-xl border shadow-sm"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Current Location</p><p className="font-bold text-primary_1">{selectedTicket.location || 'Pending'}</p></div>
+                <div className="bg-white p-4 rounded-xl border shadow-sm"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Callback Window</p><p className="font-bold text-primary_1">{selectedTicket.availability || 'Pending'}</p></div>
+                <div className="bg-white p-4 rounded-xl border shadow-sm"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Staff Contact</p><p className="font-bold text-primary_1">{selectedTicket.userPhone || 'Pending'}</p></div>
+              </div>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex-1 bg-white p-4 rounded-xl border shadow-sm">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-1">Ticket Status</p>
+                  <select
+                    value={selectedTicket.status}
                     onChange={(e) => onStatusChange(selectedTicket.id, e.target.value as TicketStatus)}
                     className="w-full bg-transparent font-bold text-primary_1 outline-none border-none cursor-pointer"
-                   >
-                     {Object.values(TicketStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                   </select>
-                 </div>
-                 {selectedTicket.sharepointId && (
-                    <button 
-                      onClick={() => window.open(`${sharepointListUrl}/DispForm.aspx?ID=${selectedTicket.sharepointId}`, '_blank')}
-                      className="px-6 py-4 bg-primary_3 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-teal_accent transition-all"
-                    >
-                      View in SharePoint
-                    </button>
-                 )}
-               </div>
+                  >
+                    {Object.values(TicketStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                {selectedTicket.sharepointId && (
+                  <button
+                    onClick={() => window.open(`${sharepointListUrl}/DispForm.aspx?ID=${selectedTicket.sharepointId}`, '_blank')}
+                    className="px-6 py-4 bg-primary_3 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-teal_accent transition-all"
+                  >
+                    View in SharePoint
+                  </button>
+                )}
+              </div>
 
-               <div className="bg-primary_1/5 p-6 rounded-2xl mb-6 border border-primary_1/10 italic text-sm text-primary_1/80">
-                  <h4 className="text-[10px] font-bold text-primary_1 uppercase mb-2 flex items-center gap-2"><Zap size={12} className="text-primary_4"/> Agentic Reasoning Path</h4>
-                  {selectedTicket.thinkingLog || "Awaiting further diagnostic telemetry..."}
-               </div>
+              <div className="bg-primary_1/5 p-6 rounded-2xl mb-6 border border-primary_1/10 italic text-sm text-primary_1/80">
+                <h4 className="text-[10px] font-bold text-primary_1 uppercase mb-2 flex items-center gap-2"><Zap size={12} className="text-primary_4" /> Agentic Reasoning Path</h4>
+                {selectedTicket.thinkingLog || "Awaiting further diagnostic telemetry..."}
+              </div>
 
-               <div className="border-t pt-6">
-                  <h4 className="font-display font-bold text-sm mb-4 text-primary_1 flex items-center gap-2">
-                    <Zap size={16} className="text-primary_2" /> Consult Senior IT Architect (Gemini Pro)
-                  </h4>
-                  <div className="space-y-4 mb-6">
-                    {adminMessages.map((m, i) => (
-                      <div key={i} className={`p-4 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-primary_1 text-white ml-12' : 'bg-white text-primary_1 mr-12 border shadow-sm'}`}>{m.content}</div>
-                    ))}
-                    {isAdminChatLoading && (
-                      <div className="flex items-center gap-2 text-gray-400 animate-pulse">
-                        <div className="w-2 h-2 bg-primary_3 rounded-full"></div>
-                        <div className="w-2 h-2 bg-primary_3 rounded-full delay-75"></div>
-                        <div className="w-2 h-2 bg-primary_3 rounded-full delay-150"></div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Architect is thinking...</span>
-                      </div>
-                    )}
-                  </div>
-                  <form onSubmit={handleAdminConsult} className="flex gap-2">
-                    <input type="text" value={adminInput} onChange={(e) => setAdminInput(e.target.value)} placeholder="Ask technical advice for this incident..." className="flex-1 border p-4 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary_3 bg-white" />
-                    <button type="submit" disabled={isAdminChatLoading} className="bg-primary_2 text-white px-8 rounded-xl font-bold text-sm shadow-lg shadow-primary_2/20 transition-transform hover:scale-105 active:scale-95 disabled:opacity-50">Consult</button>
-                  </form>
-               </div>
+              <div className="border-t pt-6">
+                <h4 className="font-display font-bold text-sm mb-4 text-primary_1 flex items-center gap-2">
+                  <Zap size={16} className="text-primary_2" /> Consult Senior IT Architect (Gemini Pro)
+                </h4>
+                <div className="space-y-4 mb-6">
+                  {adminMessages.map((m, i) => (
+                    <div key={i} className={`p-4 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-primary_1 text-white ml-12' : 'bg-white text-primary_1 mr-12 border shadow-sm'}`}>{m.content}</div>
+                  ))}
+                  {isAdminChatLoading && (
+                    <div className="flex items-center gap-2 text-gray-400 animate-pulse">
+                      <div className="w-2 h-2 bg-primary_3 rounded-full"></div>
+                      <div className="w-2 h-2 bg-primary_3 rounded-full delay-75"></div>
+                      <div className="w-2 h-2 bg-primary_3 rounded-full delay-150"></div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Architect is thinking...</span>
+                    </div>
+                  )}
+                </div>
+                <form onSubmit={handleAdminConsult} className="flex gap-2">
+                  <input type="text" value={adminInput} onChange={(e) => setAdminInput(e.target.value)} placeholder="Ask technical advice for this incident..." className="flex-1 border p-4 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary_3 bg-white" />
+                  <button type="submit" disabled={isAdminChatLoading} className="bg-primary_2 text-white px-8 rounded-xl font-bold text-sm shadow-lg shadow-primary_2/20 transition-transform hover:scale-105 active:scale-95 disabled:opacity-50">Consult</button>
+                </form>
+              </div>
+
+              <div className="border-t pt-6 mt-6">
+                <button
+                  onClick={handleGenerateKB}
+                  disabled={isGeneratingKB}
+                  className="w-full bg-primary_3 text-white px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-teal_accent transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isGeneratingKB ? (
+                    <><Loader2 className="animate-spin" size={16} /> Generating KB Article...</>
+                  ) : (
+                    <><BookOpen size={16} /> Create Knowledge Base Article</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showKBCreator && kbSuggestion && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-primary_1/50 backdrop-blur-lg">
+          <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-primary_3 p-6 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <BookOpen size={24} />
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">AI-Generated Suggestion</span>
+                  <h2 className="text-xl font-bold">Review Knowledge Base Article</h2>
+                </div>
+              </div>
+              <button onClick={() => setShowKBCreator(false)} className="text-3xl font-light hover:opacity-70 transition-opacity px-2">×</button>
+            </div>
+
+            <div className="flex-1 p-8 overflow-y-auto space-y-6">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Title/Question</label>
+                <input
+                  type="text"
+                  value={kbSuggestion.title}
+                  onChange={(e) => setKbSuggestion({ ...kbSuggestion, title: e.target.value })}
+                  className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-primary_3 text-lg font-bold text-primary_1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Category</label>
+                <select
+                  value={kbSuggestion.category}
+                  onChange={(e) => setKbSuggestion({ ...kbSuggestion, category: e.target.value })}
+                  className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-primary_3 font-bold text-primary_1 cursor-pointer"
+                >
+                  <option>Microsoft 365</option>
+                  <option>Xero</option>
+                  <option>Careview</option>
+                  <option>Hardware</option>
+                  <option>Network</option>
+                  <option>General</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Solution/Answer</label>
+                <textarea
+                  value={kbSuggestion.answer}
+                  onChange={(e) => setKbSuggestion({ ...kbSuggestion, answer: e.target.value })}
+                  rows={10}
+                  className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-primary_3 text-primary_1 leading-relaxed resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Keywords (comma-separated)</label>
+                <input
+                  type="text"
+                  value={Array.isArray(kbSuggestion.keywords) ? kbSuggestion.keywords.join(', ') : kbSuggestion.keywords}
+                  onChange={(e) => setKbSuggestion({ ...kbSuggestion, keywords: e.target.value.split(',').map((k: string) => k.trim()) })}
+                  className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-primary_3 text-primary_1"
+                  placeholder="vpn, connection, remote access"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 bg-pale_grey border-t flex gap-4 justify-end">
+              <button
+                onClick={() => setShowKBCreator(false)}
+                className="px-6 py-3 bg-white border-2 border-gray-200 text-primary_1 font-bold rounded-xl hover:border-gray-300 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveKB}
+                disabled={isSavingKB}
+                className="px-8 py-3 bg-primary_3 text-white font-bold rounded-xl hover:bg-teal_accent transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSavingKB ? (
+                  <><Loader2 className="animate-spin" size={16} /> Saving...</>
+                ) : (
+                  <>💾 Save to Knowledge Base</>
+                )}
+              </button>
             </div>
           </div>
         </div>

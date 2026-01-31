@@ -23,7 +23,7 @@ export interface Ticket {
   criticality: Criticality;
   adminRequired: boolean;
   status: TicketStatus;
-  category?: string; 
+  category?: string;
   location?: string;
   availability?: string;
   createdAt: number;
@@ -41,4 +41,12 @@ export interface Logistics {
   location: "Home" | "Office" | "On-Site";
   availability: string;
   phone: string;
+}
+
+export interface KBArticle {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  keywords: string[];
 }

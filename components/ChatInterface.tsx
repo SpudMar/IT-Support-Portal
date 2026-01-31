@@ -3,13 +3,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Camera, User, Bot, CheckCircle2, BookOpen, Info } from 'lucide-react';
 import { chatWithGemini } from '../services/geminiService';
 import { Message, Ticket, Criticality } from '../types';
-import { searchKB } from '../knowledgeBaseData';
+import { apiService } from '../services/apiService';
 
 interface ChatInterfaceProps {
   onTicketCreated: (ticket: Partial<Ticket>) => void;
+  resumeTicket?: Ticket | null;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTicket }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', content: "Hi! I'm your Lotus Assist IT Assistant. Are you having trouble with Microsoft 365, Xero, Careview, or something else? Just let me know!" }
   ]);
@@ -26,6 +27,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated }) => {
 
   useEffect(scrollToBottom, [messages]);
 
+  // Resume conversation when resumeTicket is provided
+  useEffect(() => {
+    if (resumeTicket && resumeTicket.transcript && resumeTicket.transcript.length > 0) {
+      setMessages(resumeTicket.transcript as Message[]);
+      setLastIncident({
+        summary: resumeTicket.summary,
+        category: resumeTicket.category,
+        criticality: resumeTicket.criticality
+      });
+    }
+  }, [resumeTicket]);
+
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() && !image) return;
@@ -40,13 +53,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated }) => {
     try {
       const response = await chatWithGemini(currentMessages, image || undefined);
       let finalMessages: Message[] = [];
-      
+
       if (response.functionCalls && response.functionCalls.length > 0) {
         for (const fc of response.functionCalls) {
           if (fc.name === 'search_knowledge_base') {
             const args = fc.args as { query: string };
-            const kbResults = searchKB(args.query);
-            const kbSummary = kbResults.length > 0 
+            const kbResults = await apiService.searchKnowledgeBase(args.query);
+            const kbSummary = kbResults.length > 0
               ? `Matches found: ${kbResults.map(r => r.title).join(', ')}. Details: ${kbResults.map(r => r.content).join('\n')}`
               : "No matches found.";
 
@@ -111,9 +124,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated }) => {
               <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md ${msg.role === 'user' ? 'bg-primary_2 text-white' : 'bg-white text-primary_1 border border-gray-100'}`}>
                 {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
               </div>
-              <div className={`rounded-2xl p-5 shadow-sm transition-all hover:shadow-md ${
-                msg.role === 'user' ? 'bg-primary_2 text-white rounded-tr-none' : 'bg-white text-primary_1 rounded-tl-none border border-gray-100'
-              }`}>
+              <div className={`rounded-2xl p-5 shadow-sm transition-all hover:shadow-md ${msg.role === 'user' ? 'bg-primary_2 text-white rounded-tr-none' : 'bg-white text-primary_1 rounded-tl-none border border-gray-100'
+                }`}>
                 {msg.image && <img src={msg.image} alt="Diagnostic" className="rounded-xl mb-4 max-h-64 w-auto object-cover border-4 border-white shadow-lg" />}
                 <p className="whitespace-pre-wrap text-sm md:text-[15px] leading-relaxed font-medium">{msg.content}</p>
               </div>
@@ -155,6 +167,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated }) => {
   );
 };
 
-const Loader2 = ({className}: {className?: string}) => <div className={`w-6 h-6 border-2 border-t-transparent rounded-full animate-spin ${className}`}></div>;
+const Loader2 = ({ className }: { className?: string }) => <div className={`w-6 h-6 border-2 border-t-transparent rounded-full animate-spin ${className}`}></div>;
 
 export default ChatInterface;
