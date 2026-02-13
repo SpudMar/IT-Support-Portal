@@ -68,17 +68,16 @@ async def upsert_ticket(ticket: Ticket):
 
     field_data = {
         "Title": ticket.summary,
-        "field_1": ticket.category,  # Category
-        "field_2": phone_val,        # StaffPhone
-        "field_4": ticket.userName,  # StaffName
-        "field_3": ticket.userEmail, # StaffEmail
-        "field_5": ticket.location,  # Location
-        "field_6": ticket.availability, # Availability
-        "field_7": ticket.criticality, # Criticality
-        "field_8": ticket.status,    # Status
-        "field_8": ticket.status,    # Status
-        "Transcript": json.dumps(ticket.transcript), # Transcript
-        "ThinkingLog": ticket.thinkingLog or "" # ThinkingLog
+        "Category": ticket.category,
+        "StaffPhone": phone_val,
+        "StaffName": ticket.userName,
+        "StaffEmail": ticket.userEmail,
+        "Location": ticket.location,
+        "Availability": ticket.availability,
+        "Criticality": ticket.criticality,
+        "Status": ticket.status,
+        "Transcript": json.dumps(ticket.transcript),
+        "ThinkingLog": ticket.thinkingLog or ""
     }
 
     try:
@@ -119,8 +118,8 @@ async def upsert_ticket(ticket: Ticket):
 @app.get("/api/tickets/search/{email}")
 async def search_tickets(email: str):
     try:
-        # field_3 is StaffEmail
-        query_filter = f"fields/field_3 eq '{email}'"
+        # StaffEmail is the column name
+        query_filter = f"fields/StaffEmail eq '{email}'"
         result = await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.get(
             request_configuration=lambda x: (
                 setattr(x.query_parameters, "expand", ["fields"]),
@@ -133,7 +132,6 @@ async def search_tickets(email: str):
                 f = item.fields.additional_data if item.fields else {}
                 
                 # Parse transcript from JSON string
-                # Parse transcript from JSON string
                 transcript_raw = f.get("Transcript", "[]")  # Transcript
                 try:
                     transcript = json.loads(transcript_raw) if transcript_raw else []
@@ -143,9 +141,9 @@ async def search_tickets(email: str):
                 tickets.append({
                     "sharepointId": item.id,
                     "summary": f.get("Title"),
-                    "status": f.get("field_8"), # Status
-                    "category": f.get("field_1"), # Category
-                    "criticality": f.get("field_7"), # Criticality
+                    "status": f.get("Status"),
+                    "category": f.get("Category"),
+                    "criticality": f.get("Criticality"),
                     "createdAt": item.created_date_time.timestamp() * 1000 if item.created_date_time else 0,
                     "transcript": transcript  # Add transcript for resumption
                 })
@@ -167,8 +165,7 @@ async def update_status(payload: dict = Body(...)):
 async def search_knowledge_base(q: str):
     """
     Search the KnowledgeBase list in SharePoint.
-    Fields: Title (Question), Category, Answer, Keywords
-    Internal Names: Title, field_1 (Category), field_2 (Answer), field_3 (Keywords)
+    Columns: Title (Question), Category, Answer, Keywords
     """
     kb_list_id = os.getenv("SHAREPOINT_KB_LIST_ID", "a035c017-edee-4923-9277-ecf7d080eaee")
     
@@ -193,9 +190,9 @@ async def search_knowledge_base(q: str):
             for item in result.value:
                 f = item.fields.additional_data if item.fields else {}
                 title = f.get("Title", "")
-                cat = f.get("field_1", "General") # Category
-                answer = f.get("field_2", "")     # Answer
-                keywords = f.get("field_3", "")   # Keywords
+                cat = f.get("Category", "General")
+                answer = f.get("Answer", "")
+                keywords = f.get("Keywords", "")
                 
                 # Loose matching
                 search_term = q.lower()
@@ -284,9 +281,9 @@ async def create_kb_article(payload: dict = Body(...)):
         
         field_data = {
             "Title": title,
-            "field_1": category,      # Category
-            "field_2": answer,         # Answer (Multiple lines)
-            "field_3": keywords_str    # Keywords
+            "Category": category,
+            "Answer": answer,
+            "Keywords": keywords_str
         }
         
         result = await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(kb_list_id).items.post(

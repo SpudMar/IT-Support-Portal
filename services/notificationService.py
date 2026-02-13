@@ -156,14 +156,21 @@ async def get_routing_info(graph_client: GraphServiceClient, site_id: str, routi
             item = result.value[0]
             fields = item.fields.additional_data if item.fields else {}
             
-            # MAPPING:
-            # AdminEmail -> field_2
-            # AdminPhone -> MISSING in list.
-            # NotifySMS -> field_4
-            
+            # AdminEmail is a Person or Group field — Graph API returns a nested object
+            # e.g. {"LookupId": 6, "LookupValue": "John Smith", "Email": "john@example.com"}
+            admin_email_field = fields.get("AdminEmail")
+            email = None
+            if isinstance(admin_email_field, dict):
+                email = admin_email_field.get("Email") or admin_email_field.get("LookupValue")
+            elif isinstance(admin_email_field, str):
+                email = admin_email_field
+
+            notify_sms = fields.get("NotifySMS", False)
+
             return {
-                "email": fields.get("field_2"), # AdminEmail
-                "phone": None # AdminPhone column is missing in SharePoint List
+                "email": email,
+                "phone": None,  # AdminPhone column doesn't exist in list
+                "notify_sms": notify_sms
             }
         else:
             # Category not found in list -> Try 'General' from List? Or generic fallback
