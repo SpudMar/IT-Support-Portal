@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Camera, User, Bot, CheckCircle2, BookOpen, Info } from 'lucide-react';
-import { chatWithGemini } from '../services/geminiService';
+import { chatWithGemini, extractText } from '../services/geminiService';
 import { Message, Ticket, Criticality } from '../types';
 import { apiService } from '../services/apiService';
 
@@ -67,7 +67,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
               ...currentMessages,
               { role: 'system', content: `[SYSTEM] Knowledge Base Results: ${kbSummary}` } as any
             ]);
-            if (followUpResponse.text) finalMessages.push({ role: 'model', content: followUpResponse.text });
+            const kbText = extractText(followUpResponse);
+            if (kbText) finalMessages.push({ role: 'model', content: kbText });
           } else if (fc.name === 'log_incident') {
             const args = fc.args as any;
             onTicketCreated({
@@ -80,7 +81,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
             });
             setLastIncident(args);
             const followUp = await chatWithGemini([...currentMessages, { role: 'system', content: `[SYSTEM] Incident logged for ${args.category}. Confirm to user.` } as any]);
-            if (followUp.text) finalMessages.push({ role: 'model', content: followUp.text });
+            const incidentText = extractText(followUp);
+            if (incidentText) finalMessages.push({ role: 'model', content: incidentText });
           } else if (fc.name === 'capture_logistics') {
             const args = fc.args as any;
             onTicketCreated({
@@ -90,11 +92,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
               transcript: currentMessages
             });
             const followUp = await chatWithGemini([...currentMessages, { role: 'system', content: '[SYSTEM] Logistics and contact phone captured.' } as any]);
-            if (followUp.text) finalMessages.push({ role: 'model', content: followUp.text });
+            const logisticsText = extractText(followUp);
+            if (logisticsText) finalMessages.push({ role: 'model', content: logisticsText });
           }
         }
-      } else if (response.text) {
-        finalMessages.push({ role: 'model', content: response.text });
+      } else {
+        const responseText = extractText(response);
+        if (responseText) finalMessages.push({ role: 'model', content: responseText });
       }
 
       setMessages(prev => [...prev, ...finalMessages]);

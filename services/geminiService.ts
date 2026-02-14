@@ -71,6 +71,23 @@ const captureLogisticsDecl: FunctionDeclaration = {
   },
 };
 
+/**
+ * Safely extract text from a Gemini response, ignoring thinking/thoughtSignature parts.
+ * The .text accessor warns when non-text parts (from thinkingConfig) are present.
+ */
+export function extractText(response: GenerateContentResponse): string {
+  try {
+    const parts = response.candidates?.[0]?.content?.parts || [];
+    return parts
+      .filter((p: any) => p.text !== undefined)
+      .map((p: any) => p.text)
+      .join('');
+  } catch {
+    // Fallback to .text if structure is unexpected
+    try { return response.text || ''; } catch { return ''; }
+  }
+}
+
 export async function chatWithGemini(
   messages: Message[], 
   image?: string

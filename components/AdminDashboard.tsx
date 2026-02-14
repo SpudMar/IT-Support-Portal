@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Ticket, TicketStatus, Message } from '../types';
 import { Search, Database, Phone, Zap, Copy, Filter, ExternalLink, Loader2, BookOpen } from 'lucide-react';
-import { chatWithAdminExpert } from '../services/geminiService';
+import { chatWithAdminExpert, extractText } from '../services/geminiService';
 
 interface AdminDashboardProps {
   tickets: Ticket[];
@@ -37,7 +37,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ tickets, onStatusChange
     setIsAdminChatLoading(true);
     try {
       const response = await chatWithAdminExpert(selectedTicket, [...adminMessages, newMsg]);
-      if (response.text) setAdminMessages(prev => [...prev, { role: 'model', content: response.text! }]);
+      const text = extractText(response);
+      if (text) setAdminMessages(prev => [...prev, { role: 'model', content: text }]);
     } finally { setIsAdminChatLoading(false); }
   };
 

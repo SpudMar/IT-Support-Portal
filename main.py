@@ -113,6 +113,8 @@ async def upsert_ticket(ticket: Ticket):
 
             return {"sharepoint_id": result.id}
     except Exception as e:
+        import traceback
+        print(f"SharePoint Upsert Error: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/tickets/search/{email}")
