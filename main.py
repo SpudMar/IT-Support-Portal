@@ -12,8 +12,8 @@ from pydantic import BaseModel
 # Azure & Microsoft Graph
 from azure.identity import DefaultAzureCredential
 from msgraph import GraphServiceClient
-from msgraph.generated.models.list_item import ListItem
-from msgraph.generated.models.field_value_set import FieldValueSet
+# NOTE: Using raw dicts for SP writes instead of ListItem/FieldValueSet SDK objects.
+# The SDK's additional_data serialization silently drops fields, causing generalException.
 
 # SharePoint Internal Column Name Mappings (verified via Graph API 2026-02-15)
 # IMPORTANT: Reads via additional_data return DISPLAY names. Writes require INTERNAL names.
@@ -95,15 +95,19 @@ async def upsert_ticket(ticket: Ticket):
         "field_9": json.dumps(ticket.transcript),  # Transcript
         "field_10": ticket.thinkingLog or ""   # ThinkingLog
     }
+    # Strip None values — SP rejects explicit nulls on some column types
+    field_data = {k: v for k, v in field_data.items() if v is not None}
 
     try:
         if ticket.sharepointId and ticket.sharepointId != "local":
-            fields = FieldValueSet(additional_data=field_data)
-            await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.by_list_item_id(ticket.sharepointId).fields.patch(fields)
+            await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.by_list_item_id(ticket.sharepointId).fields.patch(
+                body=field_data
+            )
             return {"sharepoint_id": ticket.sharepointId}
         else:
-            new_item = ListItem(fields=FieldValueSet(additional_data=field_data))
-            result = await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.post(new_item)
+            result = await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.post(
+                body={"fields": field_data}
+            )
             
             # --- NOTIFICATIONS (Fire & Forget) ---
             # We don't want to block the HTTP response if notifications fail, 
@@ -174,8 +178,9 @@ async def update_status(payload: dict = Body(...)):
     sp_id = payload.get("sharepointId")
     status = payload.get("status")
     try:
-        fields = FieldValueSet(additional_data={"field_8": status})  # Status
-        await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.by_list_item_id(sp_id).fields.patch(fields)
+        await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.by_list_item_id(sp_id).fields.patch(
+            body={"field_8": status}  # Status
+        )
         return {"success": True}
     except:
         raise HTTPException(status_code=500)
