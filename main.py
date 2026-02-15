@@ -12,8 +12,11 @@ from pydantic import BaseModel
 # Azure & Microsoft Graph
 from azure.identity import DefaultAzureCredential
 from msgraph import GraphServiceClient
-# NOTE: Using raw dicts for SP writes instead of ListItem/FieldValueSet SDK objects.
-# The SDK's additional_data serialization silently drops fields, causing generalException.
+import httpx
+
+# NOTE: SP list-item writes use httpx directly against the Graph REST API.
+# The msgraph-sdk's FieldValueSet.additional_data silently drops custom fields
+# during serialization, causing generalException. Reads still use the SDK.
 
 # SharePoint Internal Column Name Mappings (verified via Graph API 2026-02-15)
 # IMPORTANT: Reads via additional_data return DISPLAY names. Writes require INTERNAL names.
@@ -45,6 +48,26 @@ ROUTING_LIST_ID = os.getenv("SHAREPOINT_ROUTING_LIST_ID")
 # --- 3. Clients ---
 credential = DefaultAzureCredential()
 graph_client = GraphServiceClient(credential)
+
+GRAPH_BASE = "https://graph.microsoft.com/v1.0"
+
+async def graph_post(path: str, body: dict) -> dict:
+    """Direct Graph API POST — bypasses SDK serialization issues."""
+    token = credential.get_token("https://graph.microsoft.com/.default").token
+    async with httpx.AsyncClient() as client:
+        r = await client.post(f"{GRAPH_BASE}{path}", json=body,
+                              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+        r.raise_for_status()
+        return r.json()
+
+async def graph_patch(path: str, body: dict) -> dict:
+    """Direct Graph API PATCH — bypasses SDK serialization issues."""
+    token = credential.get_token("https://graph.microsoft.com/.default").token
+    async with httpx.AsyncClient() as client:
+        r = await client.patch(f"{GRAPH_BASE}{path}", json=body,
+                               headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+        r.raise_for_status()
+        return r.json()
 
 # --- 4. Models ---
 class Ticket(BaseModel):
@@ -100,13 +123,15 @@ async def upsert_ticket(ticket: Ticket):
 
     try:
         if ticket.sharepointId and ticket.sharepointId != "local":
-            await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.by_list_item_id(ticket.sharepointId).fields.patch(
-                body=field_data
+            await graph_patch(
+                f"/sites/{SITE_ID}/lists/{LIST_ID}/items/{ticket.sharepointId}/fields",
+                field_data
             )
             return {"sharepoint_id": ticket.sharepointId}
         else:
-            result = await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.post(
-                body={"fields": field_data}
+            result = await graph_post(
+                f"/sites/{SITE_ID}/lists/{LIST_ID}/items",
+                {"fields": field_data}
             )
             
             # --- NOTIFICATIONS (Fire & Forget) ---
@@ -131,7 +156,7 @@ async def upsert_ticket(ticket: Ticket):
                 print(f"Notification Error: {notify_ex}")
             # -------------------------------------
 
-            return {"sharepoint_id": result.id}
+            return {"sharepoint_id": result.get("id")}
     except Exception as e:
         import traceback
         print(f"SharePoint Upsert Error: {traceback.format_exc()}")
@@ -178,8 +203,9 @@ async def update_status(payload: dict = Body(...)):
     sp_id = payload.get("sharepointId")
     status = payload.get("status")
     try:
-        await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.by_list_item_id(sp_id).fields.patch(
-            body={"field_8": status}  # Status
+        await graph_patch(
+            f"/sites/{SITE_ID}/lists/{LIST_ID}/items/{sp_id}/fields",
+            {"field_8": status}  # Status
         )
         return {"success": True}
     except:
@@ -310,11 +336,12 @@ async def create_kb_article(payload: dict = Body(...)):
             "Keywords": keywords_str
         }
         
-        result = await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(kb_list_id).items.post(
-            body={"fields": field_data}
+        result = await graph_post(
+            f"/sites/{SITE_ID}/lists/{kb_list_id}/items",
+            {"fields": field_data}
         )
-        
-        return {"success": True, "id": result.id}
+
+        return {"success": True, "id": result.get("id")}
     except Exception as e:
         print(f"KB Creation Failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
