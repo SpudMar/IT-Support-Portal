@@ -58,8 +58,9 @@ async def graph_post(path: str, body: dict) -> dict:
         r = await client.post(f"{GRAPH_BASE}{path}", json=body,
                               headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
         if r.status_code >= 400:
-            print(f"Graph POST {path} → {r.status_code}: {r.text}")
-        r.raise_for_status()
+            err = f"Graph POST {r.status_code}: {r.text}"
+            print(err)
+            raise HTTPException(status_code=r.status_code, detail=err)
         return r.json()
 
 async def graph_patch(path: str, body: dict) -> dict:
@@ -69,8 +70,9 @@ async def graph_patch(path: str, body: dict) -> dict:
         r = await client.patch(f"{GRAPH_BASE}{path}", json=body,
                                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
         if r.status_code >= 400:
-            print(f"Graph PATCH {path} → {r.status_code}: {r.text}")
-        r.raise_for_status()
+            err = f"Graph PATCH {r.status_code}: {r.text}"
+            print(err)
+            raise HTTPException(status_code=r.status_code, detail=err)
         return r.json()
 
 # --- 4. Models ---
@@ -161,11 +163,8 @@ async def upsert_ticket(ticket: Ticket):
             # -------------------------------------
 
             return {"sharepoint_id": result.get("id")}
-    except httpx.HTTPStatusError as he:
-        # Extract the actual Graph API error body for debugging
-        err_body = he.response.text if he.response else "no response body"
-        print(f"SharePoint Upsert Graph Error: {he.response.status_code} {err_body}")
-        raise HTTPException(status_code=500, detail=f"Graph {he.response.status_code}: {err_body}")
+    except HTTPException:
+        raise  # Re-raise Graph API errors from graph_post/graph_patch
     except Exception as e:
         import traceback
         print(f"SharePoint Upsert Error: {traceback.format_exc()}")
