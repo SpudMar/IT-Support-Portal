@@ -15,6 +15,17 @@ from msgraph import GraphServiceClient
 from msgraph.generated.models.list_item import ListItem
 from msgraph.generated.models.field_value_set import FieldValueSet
 
+# SharePoint Internal Column Name Mappings (verified via Graph API 2026-02-15)
+# IMPORTANT: Reads via additional_data return DISPLAY names. Writes require INTERNAL names.
+#
+# Tickets List (f36dbf6a):
+#   field_1=Category  field_2=StaffPhone(number,E.164)  field_3=StaffEmail
+#   field_4=StaffName  field_5=Location  field_6=Availability
+#   field_7=Criticality  field_8=Status  field_9=Transcript  field_10=ThinkingLog
+#
+# KB List (a035c017): internal names MATCH display names (Category, Answer, Keywords)
+# Routing List (5b899e4a): field_1=AdminName field_2=AdminEmail(text) field_3=BackupAdmin field_4=NotifySMS(bool)
+
 app = FastAPI(title="Lotus IT Support Unified Portal")
 
 # --- 1. CORS Setup (Still useful for local dev) ---
@@ -63,21 +74,26 @@ async def upsert_ticket(ticket: Ticket):
     if ticket.userPhone:
         digits = re.sub(r'\D', '', ticket.userPhone)
         if digits:
+            # Convert AU mobile to E.164 numeric: 0402... → 61402...
+            if digits.startswith('0') and len(digits) == 10:
+                digits = '61' + digits[1:]
+            elif digits.startswith('61') and len(digits) == 11:
+                pass  # Already E.164 without +
             try: phone_val = int(digits)
             except: phone_val = None
 
     field_data = {
         "Title": ticket.summary,
-        "Category": ticket.category,
-        "StaffPhone": phone_val,
-        "StaffName": ticket.userName,
-        "StaffEmail": ticket.userEmail,
-        "Location": ticket.location,
-        "Availability": ticket.availability,
-        "Criticality": ticket.criticality,
-        "Status": ticket.status,
-        "Transcript": json.dumps(ticket.transcript),
-        "ThinkingLog": ticket.thinkingLog or ""
+        "field_1": ticket.category,            # Category
+        "field_2": phone_val,                  # StaffPhone (number, E.164)
+        "field_3": ticket.userEmail,           # StaffEmail
+        "field_4": ticket.userName,            # StaffName
+        "field_5": ticket.location,            # Location
+        "field_6": ticket.availability,        # Availability
+        "field_7": ticket.criticality,         # Criticality
+        "field_8": ticket.status,              # Status
+        "field_9": json.dumps(ticket.transcript),  # Transcript
+        "field_10": ticket.thinkingLog or ""   # ThinkingLog
     }
 
     try:
@@ -121,7 +137,7 @@ async def upsert_ticket(ticket: Ticket):
 async def search_tickets(email: str):
     try:
         # StaffEmail is the column name
-        query_filter = f"fields/StaffEmail eq '{email}'"
+        query_filter = f"fields/field_3 eq '{email}'"  # field_3 = StaffEmail
         result = await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.get(
             request_configuration=lambda x: (
                 setattr(x.query_parameters, "expand", ["fields"]),
@@ -158,7 +174,8 @@ async def update_status(payload: dict = Body(...)):
     sp_id = payload.get("sharepointId")
     status = payload.get("status")
     try:
-        await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.by_list_item_id(sp_id).fields.patch({"Status": status})
+        fields = FieldValueSet(additional_data={"field_8": status})  # Status
+        await graph_client.sites.by_site_id(SITE_ID).lists.by_list_id(LIST_ID).items.by_list_item_id(sp_id).fields.patch(fields)
         return {"success": True}
     except:
         raise HTTPException(status_code=500)
