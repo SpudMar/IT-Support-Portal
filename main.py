@@ -132,21 +132,11 @@ async def debug_create_test():
     Tests EVERY field individually + key combos in ONE call.
     Returns pass/fail for each so we can isolate the bad field(s) in a single deploy.
     """
-    # Test different approaches for Choice/checkbox columns (field_7 & field_8)
     test_cases = {
         "title_only": {"Title": "DBG title_only"},
-        # Approach 1: plain string (failed before)
-        "f7_string": {"Title": "DBG f7 str", "field_7": "Medium"},
-        "f8_string": {"Title": "DBG f8 str", "field_8": "Open"},
-        # Approach 2: array (just tried, also fails)
-        "f7_array": {"Title": "DBG f7 arr", "field_7": ["Medium"]},
-        "f8_array": {"Title": "DBG f8 arr", "field_8": ["Open"]},
-        # Approach 3: use display name instead of internal name
-        "f7_displayname": {"Title": "DBG f7 disp", "Criticality": "Medium"},
-        "f8_displayname": {"Title": "DBG f8 disp", "Status": "Open"},
-        # Approach 4: display name with array
-        "f7_disp_arr": {"Title": "DBG f7 da", "Criticality": ["Medium"]},
-        "f8_disp_arr": {"Title": "DBG f8 da", "Status": ["Open"]},
+        "f7_criticality": {"Title": "DBG f7", "field_7": "Medium"},
+        "f8_status": {"Title": "DBG f8", "field_8": "Open"},
+        "all_fields": {"Title": "DBG all", "field_1": "General", "field_2": 61400000000, "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": "Medium", "field_8": "Open", "field_9": '[{"role":"user","content":"test"}]', "field_10": "thinking log test"},
     }
 
     results = {}
@@ -186,8 +176,8 @@ async def upsert_ticket(ticket: Ticket):
         "field_4": ticket.userName,            # StaffName
         "field_5": ticket.location,            # Location
         "field_6": ticket.availability,        # Availability
-        "field_7": [ticket.criticality] if ticket.criticality else None,   # Criticality (Choice/checkbox → array)
-        "field_8": [ticket.status] if ticket.status else None,             # Status (Choice/checkbox → array)
+        "field_7": ticket.criticality,         # Criticality (Choice dropdown)
+        "field_8": ticket.status,              # Status (Choice dropdown)
         "field_9": json.dumps(ticket.transcript),  # Transcript
         "field_10": ticket.thinkingLog or ""   # ThinkingLog
     }
@@ -280,7 +270,7 @@ async def update_status(payload: dict = Body(...)):
     try:
         await graph_patch(
             f"/sites/{SITE_ID}/lists/{LIST_ID}/items/{sp_id}/fields",
-            {"field_8": [status]}  # Status (Choice/checkbox → array)
+            {"field_8": status}  # Status (Choice dropdown)
         )
         return {"success": True}
     except:
