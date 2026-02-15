@@ -98,77 +98,41 @@ async def health():
     return {"status": "online", "identity": "ManagedIdentity"}
 
 @app.get("/api/debug/create-test")
-async def debug_create_test(group: str = "title"):
+async def debug_create_test():
     """
-    Temporary debug endpoint: test field groups to isolate generalException.
-    ?group=title       → Title only (KNOWN WORKING)
-    ?group=text        → Title + text fields (field_1,3,4,5,6,7,8)
-    ?group=phone       → Title + field_2 (number/phone)
-    ?group=long        → Title + field_9,10 (transcript/thinking)
-    ?group=all         → All fields
-    ?group=f1          → Title + field_1 only
-    ?group=f2          → Title + field_2 only
-    ... etc up to f10
+    Tests EVERY field individually + key combos in ONE call.
+    Returns pass/fail for each so we can isolate the bad field(s) in a single deploy.
     """
-    fields = {"Title": "DEBUG TEST - delete me"}
+    test_cases = {
+        "title_only": {"Title": "DBG title_only"},
+        "f1_category": {"Title": "DBG f1", "field_1": "General"},
+        "f2_phone": {"Title": "DBG f2", "field_2": 61400000000},
+        "f3_email": {"Title": "DBG f3", "field_3": "test@example.com"},
+        "f4_name": {"Title": "DBG f4", "field_4": "Test User"},
+        "f5_location": {"Title": "DBG f5", "field_5": "Office"},
+        "f6_availability": {"Title": "DBG f6", "field_6": "9am-5pm"},
+        "f7_criticality": {"Title": "DBG f7", "field_7": "Medium"},
+        "f8_status": {"Title": "DBG f8", "field_8": "Open"},
+        "f9_transcript": {"Title": "DBG f9", "field_9": '[{"role":"user","content":"test"}]'},
+        "f10_thinking": {"Title": "DBG f10", "field_10": "thinking log test"},
+        "all_text": {"Title": "DBG text", "field_1": "General", "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": "Medium", "field_8": "Open"},
+        "all_fields": {"Title": "DBG all", "field_1": "General", "field_2": 61400000000, "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": "Medium", "field_8": "Open", "field_9": '[{"role":"user","content":"test"}]', "field_10": "thinking log test"},
+    }
 
-    if group == "text":
-        fields.update({
-            "field_1": "General",
-            "field_3": "test@example.com",
-            "field_4": "Test User",
-            "field_5": "Office",
-            "field_6": "9am-5pm",
-            "field_7": "Medium",
-            "field_8": "Open",
-        })
-    elif group == "phone":
-        fields.update({"field_2": 61400000000})
-    elif group == "long":
-        fields.update({
-            "field_9": '[{"role":"user","content":"test"}]',
-            "field_10": "thinking log test",
-        })
-    elif group == "all":
-        fields.update({
-            "field_1": "General",
-            "field_2": 61400000000,
-            "field_3": "test@example.com",
-            "field_4": "Test User",
-            "field_5": "Office",
-            "field_6": "9am-5pm",
-            "field_7": "Medium",
-            "field_8": "Open",
-            "field_9": '[{"role":"user","content":"test"}]',
-            "field_10": "thinking log test",
-        })
-    elif group.startswith("f") and group[1:].isdigit():
-        n = int(group[1:])
-        test_vals = {
-            1: ("field_1", "General"),
-            2: ("field_2", 61400000000),
-            3: ("field_3", "test@example.com"),
-            4: ("field_4", "Test User"),
-            5: ("field_5", "Office"),
-            6: ("field_6", "9am-5pm"),
-            7: ("field_7", "Medium"),
-            8: ("field_8", "Open"),
-            9: ("field_9", '[{"role":"user","content":"test"}]'),
-            10: ("field_10", "thinking log test"),
-        }
-        if n in test_vals:
-            fields[test_vals[n][0]] = test_vals[n][1]
+    results = {}
+    for name, fields in test_cases.items():
+        try:
+            r = await graph_post(
+                f"/sites/{SITE_ID}/lists/{LIST_ID}/items",
+                {"fields": fields}
+            )
+            results[name] = {"ok": True, "id": r.get("id")}
+        except HTTPException as he:
+            results[name] = {"ok": False, "status": he.status_code, "error": he.detail[:200]}
+        except Exception as e:
+            results[name] = {"ok": False, "error": str(e)[:200]}
 
-    try:
-        result = await graph_post(
-            f"/sites/{SITE_ID}/lists/{LIST_ID}/items",
-            {"fields": fields}
-        )
-        return {"ok": True, "group": group, "fields_sent": list(fields.keys()), "id": result.get("id")}
-    except HTTPException as he:
-        return {"ok": False, "group": group, "fields_sent": list(fields.keys()), "status": he.status_code, "detail": he.detail}
-    except Exception as e:
-        return {"ok": False, "group": group, "fields_sent": list(fields.keys()), "error": str(e)}
+    return results
 
 @app.post("/api/tickets")
 async def upsert_ticket(ticket: Ticket):
