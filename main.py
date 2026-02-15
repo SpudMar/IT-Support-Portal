@@ -140,12 +140,12 @@ async def debug_create_test():
         "f4_name": {"Title": "DBG f4", "field_4": "Test User"},
         "f5_location": {"Title": "DBG f5", "field_5": "Office"},
         "f6_availability": {"Title": "DBG f6", "field_6": "9am-5pm"},
-        "f7_criticality": {"Title": "DBG f7", "field_7": "Medium"},
-        "f8_status": {"Title": "DBG f8", "field_8": "Open"},
+        "f7_criticality": {"Title": "DBG f7", "field_7": ["Medium"]},
+        "f8_status": {"Title": "DBG f8", "field_8": ["Open"]},
         "f9_transcript": {"Title": "DBG f9", "field_9": '[{"role":"user","content":"test"}]'},
         "f10_thinking": {"Title": "DBG f10", "field_10": "thinking log test"},
-        "all_text": {"Title": "DBG text", "field_1": "General", "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": "Medium", "field_8": "Open"},
-        "all_fields": {"Title": "DBG all", "field_1": "General", "field_2": 61400000000, "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": "Medium", "field_8": "Open", "field_9": '[{"role":"user","content":"test"}]', "field_10": "thinking log test"},
+        "all_text": {"Title": "DBG text", "field_1": "General", "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": ["Medium"], "field_8": ["Open"]},
+        "all_fields": {"Title": "DBG all", "field_1": "General", "field_2": 61400000000, "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": ["Medium"], "field_8": ["Open"], "field_9": '[{"role":"user","content":"test"}]', "field_10": "thinking log test"},
     }
 
     results = {}
@@ -185,8 +185,8 @@ async def upsert_ticket(ticket: Ticket):
         "field_4": ticket.userName,            # StaffName
         "field_5": ticket.location,            # Location
         "field_6": ticket.availability,        # Availability
-        "field_7": ticket.criticality,         # Criticality
-        "field_8": ticket.status,              # Status
+        "field_7": [ticket.criticality] if ticket.criticality else None,   # Criticality (Choice/checkbox → array)
+        "field_8": [ticket.status] if ticket.status else None,             # Status (Choice/checkbox → array)
         "field_9": json.dumps(ticket.transcript),  # Transcript
         "field_10": ticket.thinkingLog or ""   # ThinkingLog
     }
@@ -279,7 +279,7 @@ async def update_status(payload: dict = Body(...)):
     try:
         await graph_patch(
             f"/sites/{SITE_ID}/lists/{LIST_ID}/items/{sp_id}/fields",
-            {"field_8": status}  # Status
+            {"field_8": [status]}  # Status (Choice/checkbox → array)
         )
         return {"success": True}
     except:
