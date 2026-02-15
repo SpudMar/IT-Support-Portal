@@ -97,6 +97,20 @@ class Ticket(BaseModel):
 async def health():
     return {"status": "online", "identity": "ManagedIdentity"}
 
+@app.get("/api/debug/create-test")
+async def debug_create_test():
+    """Temporary debug endpoint: create item on tickets list with Title only."""
+    try:
+        result = await graph_post(
+            f"/sites/{SITE_ID}/lists/{LIST_ID}/items",
+            {"fields": {"Title": "DEBUG TEST - delete me"}}
+        )
+        return {"ok": True, "id": result.get("id"), "result": result}
+    except HTTPException as he:
+        return {"ok": False, "status": he.status_code, "detail": he.detail}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 @app.post("/api/tickets")
 async def upsert_ticket(ticket: Ticket):
     phone_val = None
