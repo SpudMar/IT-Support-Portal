@@ -132,20 +132,21 @@ async def debug_create_test():
     Tests EVERY field individually + key combos in ONE call.
     Returns pass/fail for each so we can isolate the bad field(s) in a single deploy.
     """
+    # Test different approaches for Choice/checkbox columns (field_7 & field_8)
     test_cases = {
         "title_only": {"Title": "DBG title_only"},
-        "f1_category": {"Title": "DBG f1", "field_1": "General"},
-        "f2_phone": {"Title": "DBG f2", "field_2": 61400000000},
-        "f3_email": {"Title": "DBG f3", "field_3": "test@example.com"},
-        "f4_name": {"Title": "DBG f4", "field_4": "Test User"},
-        "f5_location": {"Title": "DBG f5", "field_5": "Office"},
-        "f6_availability": {"Title": "DBG f6", "field_6": "9am-5pm"},
-        "f7_criticality": {"Title": "DBG f7", "field_7": ["Medium"]},
-        "f8_status": {"Title": "DBG f8", "field_8": ["Open"]},
-        "f9_transcript": {"Title": "DBG f9", "field_9": '[{"role":"user","content":"test"}]'},
-        "f10_thinking": {"Title": "DBG f10", "field_10": "thinking log test"},
-        "all_text": {"Title": "DBG text", "field_1": "General", "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": ["Medium"], "field_8": ["Open"]},
-        "all_fields": {"Title": "DBG all", "field_1": "General", "field_2": 61400000000, "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": ["Medium"], "field_8": ["Open"], "field_9": '[{"role":"user","content":"test"}]', "field_10": "thinking log test"},
+        # Approach 1: plain string (failed before)
+        "f7_string": {"Title": "DBG f7 str", "field_7": "Medium"},
+        "f8_string": {"Title": "DBG f8 str", "field_8": "Open"},
+        # Approach 2: array (just tried, also fails)
+        "f7_array": {"Title": "DBG f7 arr", "field_7": ["Medium"]},
+        "f8_array": {"Title": "DBG f8 arr", "field_8": ["Open"]},
+        # Approach 3: use display name instead of internal name
+        "f7_displayname": {"Title": "DBG f7 disp", "Criticality": "Medium"},
+        "f8_displayname": {"Title": "DBG f8 disp", "Status": "Open"},
+        # Approach 4: display name with array
+        "f7_disp_arr": {"Title": "DBG f7 da", "Criticality": ["Medium"]},
+        "f8_disp_arr": {"Title": "DBG f8 da", "Status": ["Open"]},
     }
 
     results = {}
