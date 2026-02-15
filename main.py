@@ -97,6 +97,35 @@ class Ticket(BaseModel):
 async def health():
     return {"status": "online", "identity": "ManagedIdentity"}
 
+@app.get("/api/debug/columns")
+async def debug_columns():
+    """Inspect column definitions for Tickets list — find Choice values for field_7/field_8."""
+    try:
+        token = credential.get_token("https://graph.microsoft.com/.default").token
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{GRAPH_BASE}/sites/{SITE_ID}/lists/{LIST_ID}/columns",
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            cols = r.json().get("value", [])
+            # Return only custom fields (field_1 through field_10) + Title
+            relevant = {}
+            for c in cols:
+                name = c.get("name", "")
+                if name.startswith("field_") or name == "Title":
+                    relevant[name] = {
+                        "displayName": c.get("displayName"),
+                        "type": c.get("text", c.get("choice", c.get("number", c.get("boolean", c.get("dateTime", "unknown"))))),
+                        "choice": c.get("choice"),
+                        "text": c.get("text"),
+                        "number": c.get("number"),
+                        "readOnly": c.get("readOnly"),
+                        "required": c.get("required"),
+                    }
+            return relevant
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/api/debug/create-test")
 async def debug_create_test():
     """
