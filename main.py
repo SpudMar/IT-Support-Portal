@@ -97,63 +97,6 @@ class Ticket(BaseModel):
 async def health():
     return {"status": "online", "identity": "ManagedIdentity"}
 
-@app.get("/api/debug/columns")
-async def debug_columns():
-    """Inspect column definitions for Tickets list — find Choice values for field_7/field_8."""
-    try:
-        token = credential.get_token("https://graph.microsoft.com/.default").token
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                f"{GRAPH_BASE}/sites/{SITE_ID}/lists/{LIST_ID}/columns",
-                headers={"Authorization": f"Bearer {token}"}
-            )
-            cols = r.json().get("value", [])
-            # Return only custom fields (field_1 through field_10) + Title
-            relevant = {}
-            for c in cols:
-                name = c.get("name", "")
-                if name.startswith("field_") or name == "Title":
-                    relevant[name] = {
-                        "displayName": c.get("displayName"),
-                        "type": c.get("text", c.get("choice", c.get("number", c.get("boolean", c.get("dateTime", "unknown"))))),
-                        "choice": c.get("choice"),
-                        "text": c.get("text"),
-                        "number": c.get("number"),
-                        "readOnly": c.get("readOnly"),
-                        "required": c.get("required"),
-                    }
-            return relevant
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/api/debug/create-test")
-async def debug_create_test():
-    """
-    Tests EVERY field individually + key combos in ONE call.
-    Returns pass/fail for each so we can isolate the bad field(s) in a single deploy.
-    """
-    test_cases = {
-        "title_only": {"Title": "DBG title_only"},
-        "f7_criticality": {"Title": "DBG f7", "field_7": "Medium"},
-        "f8_status": {"Title": "DBG f8", "field_8": "Open"},
-        "all_fields": {"Title": "DBG all", "field_1": "General", "field_2": 61400000000, "field_3": "test@example.com", "field_4": "Test User", "field_5": "Office", "field_6": "9am-5pm", "field_7": "Medium", "field_8": "Open", "field_9": '[{"role":"user","content":"test"}]', "field_10": "thinking log test"},
-    }
-
-    results = {}
-    for name, fields in test_cases.items():
-        try:
-            r = await graph_post(
-                f"/sites/{SITE_ID}/lists/{LIST_ID}/items",
-                {"fields": fields}
-            )
-            results[name] = {"ok": True, "id": r.get("id")}
-        except HTTPException as he:
-            results[name] = {"ok": False, "status": he.status_code, "error": he.detail[:200]}
-        except Exception as e:
-            results[name] = {"ok": False, "error": str(e)[:200]}
-
-    return results
-
 @app.post("/api/tickets")
 async def upsert_ticket(ticket: Ticket):
     phone_val = None
