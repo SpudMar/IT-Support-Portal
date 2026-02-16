@@ -167,9 +167,19 @@ async def get_routing_info(graph_client: GraphServiceClient, site_id: str, routi
 
             notify_sms = fields.get("NotifySMS", False)
 
+            # PrimaryPhone — try display name first, then common internal names
+            phone = (fields.get("PrimaryPhone")
+                     or fields.get("field_5")
+                     or fields.get("field_6"))
+            # Ensure E.164 format with + prefix for ClickSend
+            if phone and isinstance(phone, str):
+                phone = phone.strip()
+                if not phone.startswith("+"):
+                    phone = f"+{phone}"
+
             return {
                 "email": email,
-                "phone": None,  # AdminPhone column doesn't exist in list
+                "phone": phone,
                 "notify_sms": notify_sms
             }
         else:

@@ -155,8 +155,8 @@ async def upsert_ticket(ticket: Ticket):
                     if admin_info.get("email"):
                         await send_teams_message(graph_client, admin_info["email"], msg_text)
                     
-                    # Send SMS (Only for HIGH or if specifically requested)
-                    if admin_info.get("phone") and ticket.criticality.lower() == "high":
+                    # Send SMS if admin is nominated for SMS notifications (NotifySMS=Yes)
+                    if admin_info.get("phone") and admin_info.get("notify_sms"):
                         await send_sms(admin_info["phone"], sms_text)
             except Exception as notify_ex:
                 print(f"Notification Error: {notify_ex}")
