@@ -1,0 +1,552 @@
+{
+  "schema_version": "1.0.0",
+  "description": "LotusAssist IT Support Issue Taxonomy - Categories and sub-categories for AI classification",
+  "categories": [
+    {
+      "id": "EMAIL",
+      "label": "Email & Calendar",
+      "description": "Outlook, email delivery, calendar, shared mailboxes, contacts",
+      "sub_categories": [
+        {
+          "id": "EM-01",
+          "label": "Outlook version confusion",
+          "description": "User on wrong version of Outlook (Classic vs New), features missing, UI looks different",
+          "keywords": ["new outlook", "classic outlook", "looks different", "features missing", "toggle", "old outlook", "outlook changed", "where did", "ribbon missing"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "EM-02",
+          "label": "Repeated password prompts",
+          "description": "Outlook keeps asking for password repeatedly, usually after MFA setup or password change",
+          "keywords": ["keeps asking password", "sign in again", "won't stop asking", "password prompt", "keeps prompting", "enter password again", "login loop"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "EM-03",
+          "label": "Shared mailbox access",
+          "description": "Cannot access a shared mailbox, shared mailbox not appearing, permissions issue",
+          "keywords": ["shared mailbox", "team inbox", "can't see shared", "shared email", "group mailbox", "add shared"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "EM-04",
+          "label": "Calendar sync issues",
+          "description": "Calendar invites not syncing, meetings not appearing, double bookings",
+          "keywords": ["calendar", "meeting not showing", "invite missing", "calendar sync", "double booked", "meeting disappeared", "calendar not updating"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "EM-05",
+          "label": "Outlook search broken",
+          "description": "Search not returning results, search slow, can't find emails",
+          "keywords": ["search not working", "can't find email", "search returns nothing", "search broken", "outlook search", "find email"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "EM-06",
+          "label": "Email send/receive failure",
+          "description": "Emails stuck in outbox, not receiving emails, delivery failures, bounced emails",
+          "keywords": ["email not sending", "not receiving", "stuck in outbox", "email stuck", "bounced", "delivery failed", "NDR", "can't send"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "EM-07",
+          "label": "Out-of-office issues",
+          "description": "Auto-reply not working, OOO not turning on/off, wrong message sending",
+          "keywords": ["out of office", "auto-reply", "OOO", "automatic reply", "away message", "vacation reply"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "EM-08",
+          "label": "Outlook profile corruption",
+          "description": "Outlook won't open, crashes on startup, profile error messages",
+          "keywords": ["outlook won't open", "outlook crashing", "profile error", "outlook crashes", "outlook broken", "outlook not responding", "outlook freezes on startup"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "EM-09",
+          "label": "Attachment problems",
+          "description": "Can't attach files, attachment too large, can't open received attachments",
+          "keywords": ["attachment too big", "can't attach", "can't open attachment", "file too large", "attachment blocked", "winmail.dat"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        }
+      ]
+    },
+    {
+      "id": "FILES",
+      "label": "Files & Storage",
+      "description": "OneDrive, file sync, storage, SharePoint document libraries, file access",
+      "sub_categories": [
+        {
+          "id": "FL-01",
+          "label": "OneDrive sync issues",
+          "description": "OneDrive not syncing, sync pending, stuck syncing, red X or warning icons",
+          "keywords": ["sync", "not syncing", "pending", "stuck syncing", "red x", "sync error", "onedrive paused", "sync problem"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "FL-02",
+          "label": "Desktop/Documents folder moved",
+          "description": "Known Folder Move - user's Desktop or Documents moved to OneDrive unexpectedly",
+          "keywords": ["files moved", "desktop empty", "documents gone", "where are my files", "files disappeared", "desktop files missing", "folders moved"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "FL-03",
+          "label": "File conflicts / duplicates",
+          "description": "Duplicate files appearing, sync conflicts, multiple versions of same file",
+          "keywords": ["duplicate", "conflict", "two copies", "which version", "copy of", "conflicted copy", "duplicate files"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "FL-04",
+          "label": "Storage full",
+          "description": "OneDrive storage full, can't save files, storage quota exceeded",
+          "keywords": ["storage full", "no space", "can't save", "quota", "out of space", "storage limit", "need more space"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "FL-05",
+          "label": "Shared file access",
+          "description": "Can't access shared files or SharePoint documents, permission denied",
+          "keywords": ["can't open shared", "permission denied", "access denied", "can't access file", "need access", "sharepoint file", "shared drive"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "FL-06",
+          "label": "OneDrive icon missing",
+          "description": "OneDrive not running, cloud icon gone from taskbar, OneDrive not starting",
+          "keywords": ["OneDrive gone", "no cloud icon", "OneDrive not running", "onedrive missing", "cloud icon disappeared"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "FL-07",
+          "label": "Files only in cloud / offline access",
+          "description": "Files showing as cloud-only, can't open files without internet, need files available offline",
+          "keywords": ["cloud only", "not available offline", "can't open without internet", "download file", "make available offline", "blue cloud icon"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "FL-08",
+          "label": "Outlook data file conflict with OneDrive",
+          "description": "OneDrive trying to sync .ost or .pst files, causing Outlook or sync errors",
+          "keywords": ["ost file", "pst file", "outlook file conflict", "outlook data file", "data file sync"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": "SOFTWARE",
+      "label": "Software & Apps",
+      "description": "Office apps, version issues, updates, activation, browser, third-party software",
+      "sub_categories": [
+        {
+          "id": "SW-01",
+          "label": "Wrong Office version (32/64-bit)",
+          "description": "32-bit Office installed instead of 64-bit or vice versa, compatibility issues with add-ins",
+          "keywords": ["wrong version", "32-bit", "64-bit", "not compatible", "version mismatch", "office version"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "SW-02",
+          "label": "Outlook Classic vs New Outlook",
+          "description": "Cross-reference with EM-01. User needs to switch between Outlook versions.",
+          "keywords": ["new outlook", "classic outlook", "switch outlook", "outlook toggle"],
+          "self_service_eligible": true,
+          "typical_priority": "P3",
+          "cross_reference": "EM-01"
+        },
+        {
+          "id": "SW-03",
+          "label": "Office not updating",
+          "description": "Office apps stuck on old version, won't update, update channel mismatch",
+          "keywords": ["old version", "won't update", "update stuck", "not updating", "outdated", "needs update", "update failed"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "SW-04",
+          "label": "Office activation errors",
+          "description": "Office showing as unlicensed, activation failed, product key issues",
+          "keywords": ["not activated", "unlicensed", "activation failed", "product activation", "license error", "subscription expired"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "SW-05",
+          "label": "Apps crashing after update",
+          "description": "Office apps or other software crashing or not opening after a recent update",
+          "keywords": ["crashing", "stopped working after update", "app closes", "keeps crashing", "crash after update", "won't open after update"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "SW-06",
+          "label": "Teams app issues",
+          "description": "Teams desktop app not opening, Teams web vs app confusion, Teams cache issues",
+          "keywords": ["teams not opening", "teams web", "teams app", "teams broken", "teams won't start", "teams cache"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "SW-07",
+          "label": "Browser too old / compatibility",
+          "description": "Web apps not loading properly due to outdated browser, site compatibility issues",
+          "keywords": ["browser", "site not loading", "compatibility", "old browser", "browser update", "website broken"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        }
+      ]
+    },
+    {
+      "id": "ACCOUNT",
+      "label": "Login & Account Access",
+      "description": "Passwords, MFA, account lockouts, sign-in problems, SSO, conditional access",
+      "sub_categories": [
+        {
+          "id": "AC-01",
+          "label": "Forgotten password",
+          "description": "User can't remember their password and needs to reset it",
+          "keywords": ["forgot password", "don't remember password", "password reset", "can't remember", "what's my password"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "AC-02",
+          "label": "MFA / Authenticator issues",
+          "description": "New phone, lost authenticator app, can't receive verification codes, MFA setup problems",
+          "keywords": ["new phone", "authenticator", "verification code", "MFA", "two factor", "2FA", "can't verify", "lost phone", "new number"],
+          "self_service_eligible": false,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "AC-03",
+          "label": "Account locked out",
+          "description": "Account disabled or locked after too many failed sign-in attempts",
+          "keywords": ["locked out", "too many attempts", "account disabled", "account locked", "can't get in", "blocked"],
+          "self_service_eligible": false,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "AC-04",
+          "label": "Cached credentials after password change",
+          "description": "Apps still using old password after a change, need to sign in again everywhere",
+          "keywords": ["changed password but", "old password still", "keeps using old", "password changed", "still asking for old"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "AC-05",
+          "label": "SSO failures for third-party apps",
+          "description": "Single sign-on not working for apps that normally use Microsoft login",
+          "keywords": ["can't sign into", "SSO", "single sign on", "third party login", "app login broken"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "AC-06",
+          "label": "Blocked by conditional access",
+          "description": "Access blocked when trying to use M365 from a personal or unmanaged device",
+          "keywords": ["blocked", "can't access from", "personal device blocked", "not compliant", "conditional access", "device not allowed"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": "TEAMS",
+      "label": "Teams & Meetings",
+      "description": "Microsoft Teams calls, meetings, chat, notifications, performance",
+      "sub_categories": [
+        {
+          "id": "TM-01",
+          "label": "Audio/video not working",
+          "description": "No sound, microphone not working, camera not detected in Teams meetings",
+          "keywords": ["no sound", "can't hear", "camera not working", "mic", "microphone", "audio", "video", "muted", "they can't hear me"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "TM-02",
+          "label": "Screen sharing fails",
+          "description": "Can't share screen in Teams, screen share shows black, permission issues",
+          "keywords": ["can't share screen", "share screen not working", "screen sharing", "black screen share", "share desktop"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "TM-03",
+          "label": "Notifications missing",
+          "description": "Not getting Teams notifications, chat alerts not appearing, missed messages",
+          "keywords": ["no notifications", "not getting alerts", "teams silent", "missed message", "no alerts", "notifications off"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "TM-04",
+          "label": "Can't join meeting",
+          "description": "Meeting link not working, can't join from calendar, meeting room issues",
+          "keywords": ["meeting link not working", "can't join", "link broken", "join meeting", "meeting won't open"],
+          "self_service_eligible": true,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "TM-05",
+          "label": "Chat not syncing",
+          "description": "Teams messages missing, chat not loading, messages appearing delayed",
+          "keywords": ["messages missing", "chat not loading", "messages delayed", "chat empty", "old messages"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "TM-06",
+          "label": "Teams performance",
+          "description": "Teams running slow, freezing, high CPU/memory usage",
+          "keywords": ["teams slow", "teams freezing", "teams lagging", "teams uses too much", "teams heavy"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "TM-07",
+          "label": "Voicemail / call queue",
+          "description": "Voicemail not working, call queue issues, phone system problems",
+          "keywords": ["voicemail", "call queue", "phone system", "calls", "missed call", "phone number"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": "DEVICE",
+      "label": "Device & Hardware",
+      "description": "Laptops, desktops, printers, monitors, peripherals, firmware, performance",
+      "sub_categories": [
+        {
+          "id": "DV-01",
+          "label": "Printer issues",
+          "description": "Can't print, printer not found, print jobs stuck, wrong printer selected",
+          "keywords": ["printer", "can't print", "not printing", "print stuck", "find printer", "add printer", "printer offline"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "DV-02",
+          "label": "Display/monitor issues",
+          "description": "External monitor not working, resolution wrong, multiple monitor setup, screen flickering",
+          "keywords": ["monitor", "screen", "display", "resolution", "second screen", "external monitor", "flickering", "blank screen"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "DV-03",
+          "label": "Laptop/desktop slow",
+          "description": "Device running slowly, taking long to start up, general poor performance",
+          "keywords": ["slow", "takes ages", "lagging", "performance", "sluggish", "takes forever", "running slow"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "DV-04",
+          "label": "Bluetooth/WiFi hardware",
+          "description": "Bluetooth not pairing, WiFi adapter not working, wireless connectivity hardware issues",
+          "keywords": ["bluetooth", "wifi", "wireless", "can't pair", "bluetooth not finding", "wifi adapter"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "DV-05",
+          "label": "USB devices not recognised",
+          "description": "USB devices not detected, USB drives not showing, peripheral not recognised",
+          "keywords": ["USB", "not recognized", "not recognised", "device not detected", "USB not working", "plug in"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "DV-06",
+          "label": "Won't boot / blue screen",
+          "description": "Device won't turn on, blue screen of death, crash on startup, boot failure",
+          "keywords": ["won't start", "blue screen", "crash on startup", "BSOD", "won't boot", "dead", "black screen", "not turning on"],
+          "self_service_eligible": false,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "DV-07",
+          "label": "Firmware / driver updates needed",
+          "description": "Device needs firmware update, driver issues, hardware not working after Windows update",
+          "keywords": ["firmware", "driver", "BIOS", "update needed", "hardware after update", "driver missing"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        }
+      ]
+    },
+    {
+      "id": "SECURITY",
+      "label": "Security Concern",
+      "description": "Phishing, suspicious activity, data breach, security incidents. ALWAYS ESCALATE IMMEDIATELY.",
+      "always_escalate": true,
+      "sub_categories": [
+        {
+          "id": "SC-01",
+          "label": "Phishing / suspicious email",
+          "description": "User received a suspicious or phishing email",
+          "keywords": ["phishing", "suspicious email", "weird email", "scam", "fake email", "strange email", "dodgy email"],
+          "self_service_eligible": false,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "SC-02",
+          "label": "Clicked a bad link",
+          "description": "User clicked on a suspicious link or opened a suspicious attachment",
+          "keywords": ["clicked link", "clicked something", "opened attachment", "clicked bad", "opened email", "accidentally clicked"],
+          "self_service_eligible": false,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "SC-03",
+          "label": "Data breach concern",
+          "description": "Suspected data breach, information may have been exposed or leaked",
+          "keywords": ["data breach", "information leaked", "compromised", "data exposed", "privacy breach"],
+          "self_service_eligible": false,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "SC-04",
+          "label": "Security incident report",
+          "description": "Suspected hacking, unauthorised access, unknown activity on account",
+          "keywords": ["security incident", "hacked", "unauthorized access", "unauthorised", "someone in my account", "didn't send that"],
+          "self_service_eligible": false,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "SC-05",
+          "label": "Blocked website (legitimate need)",
+          "description": "A website the user needs is blocked by security filters",
+          "keywords": ["website blocked", "can't access site", "blocked by filter", "site blocked", "firewall block"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        }
+      ]
+    },
+    {
+      "id": "ACCESS_REQUEST",
+      "label": "New Staff / Access Requests",
+      "description": "User provisioning, access changes, software installs, offboarding. All require IT admin action.",
+      "always_escalate": true,
+      "sub_categories": [
+        {
+          "id": "AR-01",
+          "label": "New staff setup",
+          "description": "New employee needs account creation, device setup, and access provisioning",
+          "keywords": ["new staff", "new employee", "new starter", "onboarding", "new person", "starting soon"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "AR-02",
+          "label": "Access to shared resource",
+          "description": "Need to be added to a shared mailbox, Teams channel, SharePoint site, or shared drive",
+          "keywords": ["need access to", "can't see", "add me to", "join team", "shared folder access", "sharepoint access"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "AR-03",
+          "label": "Software installation request",
+          "description": "User needs software installed that isn't available through Company Portal or self-service",
+          "keywords": ["need installed", "install software", "need app", "can't install", "new program"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "AR-04",
+          "label": "License / feature missing",
+          "description": "A feature or app isn't available, likely a licensing issue",
+          "keywords": ["feature not available", "license", "can't use", "option greyed out", "not included", "need access to feature"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "AR-05",
+          "label": "VPN access request",
+          "description": "User needs VPN set up or reconfigured for remote access",
+          "keywords": ["VPN", "remote access", "work from home access", "VPN setup"],
+          "self_service_eligible": false,
+          "typical_priority": "P3"
+        },
+        {
+          "id": "AR-06",
+          "label": "Departing staff",
+          "description": "Staff member leaving, account needs to be deactivated, data preserved",
+          "keywords": ["leaving", "last day", "deactivate account", "offboarding", "departing", "resigned", "termination"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": "NETWORK",
+      "label": "Internet & Connectivity",
+      "description": "Internet access, WiFi, VPN, network connectivity, internal resources",
+      "sub_categories": [
+        {
+          "id": "NW-01",
+          "label": "Internet not working",
+          "description": "Complete loss of internet access, can't browse any websites",
+          "keywords": ["no internet", "internet down", "can't browse", "internet not working", "no connection"],
+          "self_service_eligible": true,
+          "typical_priority": "P1"
+        },
+        {
+          "id": "NW-02",
+          "label": "VPN not connecting",
+          "description": "VPN client won't connect, VPN errors, can't establish VPN tunnel",
+          "keywords": ["VPN won't connect", "VPN error", "VPN broken", "can't connect to VPN"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "NW-03",
+          "label": "WiFi dropping out",
+          "description": "WiFi connection intermittent, keeps disconnecting and reconnecting",
+          "keywords": ["wifi drops", "keeps disconnecting", "wifi intermittent", "wifi unstable", "in and out"],
+          "self_service_eligible": true,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "NW-04",
+          "label": "Can't access internal resources",
+          "description": "Can't reach internal servers, intranet, or network drives while internet works fine",
+          "keywords": ["can't reach server", "intranet down", "network drive", "internal site", "mapped drive"],
+          "self_service_eligible": false,
+          "typical_priority": "P2"
+        },
+        {
+          "id": "NW-05",
+          "label": "Website/service unreachable",
+          "description": "A specific website or cloud service isn't loading while everything else works",
+          "keywords": ["site down", "service not loading", "website not working", "can't open site", "page not loading"],
+          "self_service_eligible": true,
+          "typical_priority": "P3"
+        }
+      ]
+    }
+  ]
+}

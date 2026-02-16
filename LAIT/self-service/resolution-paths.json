@@ -1,0 +1,704 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Self-service resolution paths the AI can walk users through. Each path has a maximum of 4 steps presented one at a time.",
+  "resolution_paths": {
+    "EM-01": {
+      "label": "Outlook version confusion (Classic vs New)",
+      "precondition": "User is on the wrong version of Outlook or features are missing",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "In Outlook, look at the top-right corner of the window. Can you see a toggle switch that says 'New Outlook' or 'Try the new Outlook'?",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction_if_yes": "Click that toggle to switch back to Classic Outlook. It will close and reopen -- that's normal.",
+          "instruction_if_no": "Let me check something else. Go to File > Account and tell me what version it says.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Once Outlook reopens, check if the features you were looking for are back. Are they there now?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "That should do it. You're now on Classic Outlook which has all the features. The IT team may switch everyone over to New Outlook at some point, but for now Classic is the go.",
+      "failure_escalation": "Outlook version toggle not resolving the issue - may need IT admin to check update channel or reinstall."
+    },
+    "EM-02": {
+      "label": "Repeated password prompts in Outlook",
+      "precondition": "Outlook keeps asking for password, usually after password change or MFA setup",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "First, let's close Outlook completely. Right-click the Outlook icon in your taskbar at the bottom and click 'Quit' or 'Close window'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Now, click the Start button (Windows icon at the bottom-left) and type 'Credential Manager'. Open it when it appears.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Click on 'Windows Credentials'. You should see a list. Look for any entries that mention 'MicrosoftOffice' or 'outlook'. Click on each one and then click 'Remove'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 4,
+          "instruction": "Now open Outlook again. It should ask you to sign in once -- use your work email and current password. After that, it should stop asking.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Great, that's sorted the password loop. If it comes back, let me know and we'll get IT to take a deeper look.",
+      "failure_escalation": "Credential Manager clear did not resolve. Likely OAuth token refresh issue or Outlook profile corruption. IT admin should check Azure AD sign-in logs and consider removing/re-adding the Outlook profile."
+    },
+    "EM-04": {
+      "label": "Calendar sync issues",
+      "precondition": "Calendar invites not showing, meetings missing",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Let's try restarting Outlook first. Close it completely (right-click taskbar icon > Quit), wait about 30 seconds, then open it again.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Check your calendar now -- is the meeting/invite showing up?",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction_if_no": "Try signing out of Outlook (File > Account > Sign Out), close Outlook, reopen it and sign back in. This forces a full re-sync.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Good to hear the calendar is back in sync!",
+      "failure_escalation": "Calendar sync not resolving after sign-out/sign-in. IT admin should check for calendar permission issues, shared calendar delegation, or Exchange Online connectivity."
+    },
+    "EM-05": {
+      "label": "Outlook search not working",
+      "precondition": "Search returns no results or wrong results",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Close Outlook first.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Click Start and type 'Indexing Options'. Open it when it appears.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Click 'Advanced', then click 'Rebuild'. This will rebuild the search index. It might take a little while (up to 10-15 minutes).",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 4,
+          "instruction": "Wait about 10 minutes, then open Outlook and try searching again. Is it working now?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Search should be working properly now. If it happens again, it might be worth letting IT know so they can check the indexing settings.",
+      "failure_escalation": "Index rebuild did not fix search. IT admin should check Windows Search service status, Outlook data file integrity, and consider running SaRA (Support and Recovery Assistant)."
+    },
+    "EM-06": {
+      "label": "Email stuck in outbox",
+      "precondition": "Emails not sending, stuck in outbox",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Look at the very bottom of the Outlook window. Does it say 'Working Offline' or 'Disconnected'?",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction_if_yes": "Click the 'Send/Receive' tab at the top, then click 'Work Offline' to turn it off. That should reconnect you.",
+          "instruction_if_no": "OK, try clicking Send/Receive > 'Send All' to force the emails through.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Check your outbox now -- have the emails gone through?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Emails are flowing again. The 'Work Offline' mode can sometimes get toggled by accident.",
+      "failure_escalation": "Emails still stuck in outbox despite being online. IT admin should check attachment size limits, mail flow rules, and Exchange Online connectivity. May need to open stuck email and re-send."
+    },
+    "EM-07": {
+      "label": "Out-of-office not working",
+      "precondition": "Auto-reply not activating or sending wrong message",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "In Outlook, go to File (top-left), then click 'Automatic Replies'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Make sure 'Send automatic replies' is selected (not 'Do not send'). Check that the start and end dates are correct, and your message is in the box below.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Click OK to save. Try sending a test email to yourself from a different account (or ask a colleague to email you) to see if the auto-reply comes through.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Out-of-office is set up and working!",
+      "failure_escalation": "Auto-replies configured correctly but not sending. IT admin should check Exchange Online automatic reply settings in admin center and mail flow rules that might be blocking."
+    },
+    "EM-09": {
+      "label": "Attachment too big",
+      "precondition": "User trying to send an email with a large attachment",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Email attachments have a 25MB limit. For bigger files, Outlook can send a link instead. When you click the attach button (paperclip), choose 'Browse this PC' to find your file.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "After selecting the file, if it's too big, Outlook should offer to upload it to OneDrive and share a link instead. Click 'Upload and share as a OneDrive link'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "The recipient will get a link they can click to download the file. Did that work?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Using OneDrive links is actually better for big files anyway -- the recipient can always access it and you don't clog up their inbox.",
+      "failure_escalation": "User unable to use OneDrive link sharing. May be a OneDrive sync issue or sharing permission. IT admin should check OneDrive status and external sharing policies."
+    },
+    "FL-01": {
+      "label": "OneDrive sync stuck/pending",
+      "precondition": "OneDrive showing sync errors, pending, or red X",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Right-click the OneDrive cloud icon in your taskbar (bottom-right) and choose 'Pause syncing', then pick '2 minutes'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Wait for it to resume (about 2 minutes). Is the red X or warning gone now?",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction_if_no": "Let's try a full restart of OneDrive. Right-click the cloud icon and click 'Quit OneDrive' (or 'Close OneDrive').",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 4,
+          "instruction": "Now search for 'OneDrive' in the Start menu and open it. It should start syncing fresh. Check if the icon looks healthy now.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "OneDrive is back in sync. If this keeps happening, let me know and we'll get IT to take a closer look.",
+      "failure_escalation": "OneDrive restart did not resolve sync issue. IT admin should check OneDrive sync logs (%localappdata%\\Microsoft\\OneDrive\\logs), storage quota, and any file name/path length issues. Consider running OneDrive reset (onedrive.exe /reset)."
+    },
+    "FL-02": {
+      "label": "Desktop/Documents folder moved (Known Folder Move)",
+      "precondition": "User's files seem to have disappeared from Desktop or Documents",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Don't worry -- your files are safe! What's happened is your Desktop and Documents folders have been backed up to OneDrive. They haven't been deleted.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Open File Explorer (the folder icon in your taskbar). In the left panel, look for 'OneDrive - LotusAssist'. Click on it, then open either 'Desktop' or 'Documents'. Your files should be there.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Can you see your files there?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Your files are all there. This backup to OneDrive is actually a good thing -- it means your files are protected even if something happens to your laptop. Everything you save to Desktop or Documents will automatically be backed up from now on.",
+      "failure_escalation": "Files not visible in OneDrive folder after Known Folder Move. IT admin should check KFM status in OneDrive settings, verify OneDrive is signed in to the correct account, and check recycle bin."
+    },
+    "FL-04": {
+      "label": "Storage full",
+      "precondition": "OneDrive storage quota exceeded",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Right-click the OneDrive cloud icon in your taskbar and click 'Settings'. Under the 'Account' tab, it should show how much storage you're using.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "You have 1TB (1,000 GB) of storage with your M365 licence. If you're getting close, let's find what's taking up space. Open OneDrive in your web browser by going to https://onedrive.live.com and sign in with your work email.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Click the gear icon (Settings) at the top, then 'OneDrive settings', then 'More settings' > 'Storage metrics'. This shows you what's using the most space.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Now you can see what's taking up space. If you need help cleaning up large files or if 1TB isn't enough, we can get IT involved.",
+      "failure_escalation": "User genuinely at or near 1TB. IT admin should review storage usage, check for large PST files or video files that could be archived, consider OneDrive retention policies."
+    },
+    "FL-06": {
+      "label": "OneDrive icon missing",
+      "precondition": "OneDrive not running, no cloud icon in taskbar",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Click Start (Windows icon at the bottom-left) and type 'OneDrive'. When it appears in the results, click to open it.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "OneDrive should start up and the cloud icon should appear in your taskbar (bottom-right). Can you see it now?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "OneDrive is back up and running. It should start automatically when you turn on your laptop from now on.",
+      "failure_escalation": "OneDrive not appearing even after manual launch. IT admin should check if OneDrive is installed, if it's set to run at startup, and if there are any GPO/Intune policies affecting it."
+    },
+    "FL-07": {
+      "label": "Files showing as cloud-only",
+      "precondition": "User needs files available offline but they're cloud-only",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Find the file or folder you need in File Explorer. Right-click on it.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Click 'Always keep on this device'. You should see a green tick appear on the file icon once it's downloaded.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "That file will now always be available even without internet. You can do this for individual files or whole folders. Did that work?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "That file is now pinned to your device. Tip: if you're heading somewhere without reliable internet, right-click any folders you'll need and choose 'Always keep on this device' beforehand.",
+      "failure_escalation": "Right-click option not available or file not downloading. IT admin should check OneDrive sync status and Files On-Demand settings."
+    },
+    "SW-03": {
+      "label": "Office not updating",
+      "precondition": "Office apps stuck on old version, not receiving updates",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Open any Office app (Word, Excel, or Outlook). Click 'File' in the top-left, then 'Account'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "On the right side, you should see 'Update Options'. Click it, then click 'Update Now'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "It'll check for updates and install them if any are available. You might need to close your Office apps while it updates. Let me know when it's done.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Office should be up to date now. Updates usually happen automatically, but sometimes they need a nudge.",
+      "failure_escalation": "Update option greyed out, missing, or update failing. IT admin should check Click-to-Run update channel configuration, network/proxy settings, and whether Intune policies are controlling updates."
+    },
+    "SW-04": {
+      "label": "Office activation errors",
+      "precondition": "Office showing as unlicensed or activation failed",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Open any Office app (like Word). Go to File > Account. Click 'Sign Out'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Close ALL Office apps completely (Word, Excel, Outlook, Teams -- everything).",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Now open Word again. It should ask you to sign in. Use your work email (the @lotusassist.com.au one) and your password.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 4,
+          "instruction": "Check if it now shows as 'Microsoft 365 Business' or similar under File > Account. Is the 'Unlicensed' warning gone?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Office is activated and good to go!",
+      "failure_escalation": "Sign-out/sign-in did not resolve activation. IT admin should verify M365 licence assignment in admin centre, check for device activation limits (5 per user), and consider running SaRA tool."
+    },
+    "SW-05": {
+      "label": "Apps crashing after update",
+      "precondition": "Office apps crashing or not opening after a recent update",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Let's try a Quick Repair first. Click Start and type 'Control Panel'. Open it.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Click 'Programs', then 'Programs and Features'. Find 'Microsoft 365' in the list and click on it.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Click 'Change' at the top. Choose 'Quick Repair' and click 'Repair'. This will fix common issues without needing internet.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 4,
+          "instruction": "Once the repair finishes, try opening the app that was crashing. Is it working now?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "The Quick Repair sorted it out. If it happens again after the next update, let me know.",
+      "failure_escalation": "Quick Repair didn't fix it. IT admin should try Online Repair (more thorough), check for conflicting add-ins, or review the update channel for rollback options."
+    },
+    "SW-06": {
+      "label": "Teams app issues",
+      "precondition": "Teams desktop app not working properly, freezing, or not opening",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "First, let's fully close Teams. Right-click the Teams icon in your taskbar (bottom-right) and click 'Quit'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Now let's clear the Teams cache. Open File Explorer and paste this into the address bar at the top: %appdata%\\Microsoft\\Teams",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Select everything in that folder (Ctrl+A) and delete it all. Don't worry -- this is just temporary data, not your messages or files.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 4,
+          "instruction": "Now open Teams again from the Start menu. It might take a moment to load the first time. Is it working better now?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Teams should be running smoothly now. Clearing the cache is a good fix for most Teams desktop issues.",
+      "failure_escalation": "Teams cache clear didn't resolve. IT admin should check if New Teams vs Classic Teams is the issue, verify Teams is up to date, check for proxy/firewall issues, or consider reinstalling."
+    },
+    "TM-01": {
+      "label": "Audio/video not working in Teams",
+      "precondition": "Can't hear, be heard, or camera not working in Teams meetings",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "In your Teams meeting (or start a test one), click the three dots '...' at the top, then 'Settings', then 'Device settings'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Check that the right speaker, microphone, and camera are selected in the dropdowns. If you're using headphones or an external speaker, make sure those are selected, not your laptop's built-in ones.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "You can test your setup by going to Teams Settings (click your profile picture > Settings > Devices) and clicking 'Make a test call'. It'll let you hear your own voice played back.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Audio and video are working. If you switch between headphones and speakers often, just keep an eye on those device settings -- Teams doesn't always switch automatically.",
+      "failure_escalation": "Device settings correct but audio/video still not working. IT admin should check Windows sound settings, audio driver status, and whether the device is being used by another application. May need driver update or device troubleshooter."
+    },
+    "TM-03": {
+      "label": "Teams notifications missing",
+      "precondition": "Not receiving Teams notifications for messages or meetings",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "In Teams, click the three dots '...' at the top-right, then 'Settings', then 'Notifications'. Make sure the notification toggles are turned on for the things you care about (chat messages, mentions, etc.).",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Now let's check Windows settings too. Click Start, go to Settings (gear icon), then 'System', then 'Notifications'. Make sure 'Microsoft Teams' is in the list and toggled ON.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Also check if 'Focus Assist' (or 'Do Not Disturb') is turned off. It's in the same Notifications settings area. If it's on, it might be blocking Teams alerts.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Notifications should be coming through now. Ask a colleague to send you a test message to verify.",
+      "failure_escalation": "Notifications still not working despite correct settings. IT admin should check Teams notification policies, browser notification permissions (if using web), and Focus Assist schedules."
+    },
+    "TM-04": {
+      "label": "Can't join Teams meeting",
+      "precondition": "Meeting link not working or can't join from calendar",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Try opening the meeting link in a web browser instead. Copy the meeting link and paste it into Chrome or Edge. When it asks, choose 'Continue on this browser'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Were you able to join through the browser?",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction_if_yes": "The Teams app might just need a restart. After your meeting, close Teams and reopen it. That usually sorts out link issues.",
+          "instruction_if_no": "Let's check -- is this a Teams meeting or a Zoom/other type? Also, is the meeting time definitely now (it won't let you join if it hasn't started yet)?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Glad you got in. If the Teams app keeps having trouble with meeting links, try clearing the Teams cache (I can walk you through that if you need).",
+      "failure_escalation": "Can't join via browser either. IT admin should check if it's an external meeting (may need guest access settings), if the meeting link is valid, or if there's a Teams service issue."
+    },
+    "TM-06": {
+      "label": "Teams slow/freezing",
+      "precondition": "Teams running slowly, lagging, or freezing",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Let's restart Teams first. Right-click the Teams icon in your taskbar and click 'Quit', then open Teams again from the Start menu.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "If it's still slow, let's clear the cache. Close Teams again, then open File Explorer and paste this in the address bar: %appdata%\\Microsoft\\Teams",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Delete everything in that folder (Ctrl+A, then Delete). Then reopen Teams. Is it faster now?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Teams should be snappier now. If it keeps getting slow, it might be worth checking how many apps you have open at the same time -- Teams can be a bit of a memory hog.",
+      "failure_escalation": "Teams still slow after cache clear. IT admin should check system resources (RAM/CPU), consider whether device needs upgrade, check for Teams version (New vs Classic), and verify network performance."
+    },
+    "AC-01": {
+      "label": "Forgotten password",
+      "precondition": "User can't remember their password",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "You can reset your password yourself. Open a web browser and go to https://aka.ms/sspr",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Enter your work email address and complete the verification (it'll ask for your phone number or authenticator code to prove it's you).",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Set a new password. Make sure it's something you'll remember but hard for others to guess. Were you able to get in?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "You're back in! Remember, after changing your password, you might need to sign in again on your other devices (phone, tablet) with the new password.",
+      "failure_escalation": "Self-service password reset not working (possibly no recovery methods registered, or SSPR not enabled). IT admin needs to manually reset the password in M365 admin centre."
+    },
+    "AC-04": {
+      "label": "Cached credentials after password change",
+      "precondition": "Apps still using old password after user changed it",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "First, sign out of all Office apps. In any Office app, go to File > Account > Sign Out.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Now open Credential Manager (search for it in Start). Under 'Windows Credentials', remove any entries that mention Microsoft, Office, or Outlook.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Now restart your computer. A full restart will clear out any old login info stuck in memory.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 4,
+          "instruction": "After restarting, open Outlook (or whichever app was asking for the old password). Sign in with your new password. Is it working now?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "All sorted. Sometimes after a password change, the old credentials hang around. The restart and credential clear should have flushed them all out.",
+      "failure_escalation": "Cached credentials persist after clear and restart. IT admin should check for Azure AD token issues, Intune device compliance, and consider removing/re-adding the user's account from Windows Settings > Accounts."
+    },
+    "DV-01": {
+      "label": "Printer issues",
+      "precondition": "Can't print, printer not found, or print jobs stuck",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Let's restart the print service. Click Start and type 'Services'. Open the Services app.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "Scroll down to find 'Print Spooler'. Right-click on it and choose 'Restart'.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Now try printing again. Did it work?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Printer is working again. Restarting the Print Spooler clears out stuck print jobs.",
+      "failure_escalation": "Print Spooler restart didn't help. IT admin should check printer connectivity (network/USB), printer drivers, and whether the printer needs to be re-added. May also need to check printer firmware."
+    },
+    "DV-03": {
+      "label": "Laptop/desktop running slow",
+      "precondition": "Device generally slow, taking long to respond",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Let's start with a proper restart. Click Start > Power > Restart. Important: choose 'Restart', not just 'Shut down' -- Restart does a more thorough refresh.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "After it comes back on, is it noticeably faster?",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction_if_no": "Let's check what's using your resources. Press Ctrl+Alt+Del and click 'Task Manager'. Click 'More details' if it shows a simple view. Look at the top of the list -- are any apps using a lot of CPU or Memory?",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 4,
+          "instruction": "If you see something using a lot of resources that you don't need, click on it and click 'End Task'. But don't close anything you're not sure about.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Hopefully that's freed things up. If your laptop keeps being slow, it might need a deeper look from IT -- could be a storage or hardware issue.",
+      "failure_escalation": "Device still slow after restart and closing resource-heavy apps. IT admin should check disk health (SSD/HDD), available storage space, startup programs, Windows Update status, and consider whether the device needs a hardware upgrade."
+    },
+    "DV-04": {
+      "label": "Bluetooth/WiFi hardware issues",
+      "precondition": "Bluetooth not pairing or WiFi adapter not working",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Let's toggle it off and on. Click the WiFi or Bluetooth icon in your taskbar (bottom-right). Turn it off, wait 10 seconds, then turn it back on.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction_wifi": "For WiFi: if it reconnects but then drops again, try 'forgetting' the network. Click on the WiFi icon, right-click your network name, choose 'Forget', then reconnect and enter the password again.",
+          "instruction_bluetooth": "For Bluetooth: try removing the device and pairing it again. Go to Settings > Bluetooth & devices, find the device, click 'Remove', then try pairing from scratch.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "Connected! If it keeps dropping, there might be a driver or firmware issue that IT can look at.",
+      "failure_escalation": "Toggle and forget/re-pair didn't work. IT admin should check device drivers, Windows Update for driver updates, airplane mode status, and hardware switch (some laptops have physical WiFi/BT switches)."
+    },
+    "DV-05": {
+      "label": "USB device not recognised",
+      "precondition": "USB device plugged in but not detected",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Try unplugging the USB device and plugging it into a different USB port on your computer.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "If that didn't work, try restarting your computer with the USB device plugged in.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "USB device is working. Sometimes ports get a bit finicky.",
+      "failure_escalation": "USB device not recognised in any port even after restart. IT admin should check Device Manager for unknown devices, USB driver status, and whether USB ports are disabled by policy. May need driver install for the specific device."
+    },
+    "NW-01": {
+      "label": "Internet not working",
+      "precondition": "Complete loss of internet access",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "If you're working from home, try restarting your router/modem. Unplug it from power, wait 30 seconds, then plug it back in. It takes about 2 minutes to come back.",
+          "wait_for_confirmation": true,
+          "note": "Only suggest this for home workers. If in office, skip to step 2."
+        },
+        {
+          "step": 2,
+          "instruction": "Can you check if your phone can connect to the same WiFi? That tells us if it's your computer or the internet connection itself.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction_computer_only": "If your phone works fine but your laptop doesn't, try clicking the WiFi icon, disconnecting, and reconnecting to the network.",
+          "instruction_all_devices": "If nothing can connect, it's likely the internet connection itself. If you're in the office, check with people nearby -- if everyone is affected, this is an outage.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "You're back online!",
+      "failure_escalation": "Internet still down. If office-wide: IT admin needs to check ISP status, router/firewall, and DNS settings. If single user: check network adapter, run Windows Network Diagnostics, check for proxy/VPN conflicts."
+    },
+    "NW-03": {
+      "label": "WiFi dropping out",
+      "precondition": "WiFi connection intermittent, keeps disconnecting",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Click the WiFi icon in your taskbar. Right-click on your network name and choose 'Forget'. Then reconnect to it and enter the password again.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "If possible, try moving closer to the WiFi router or access point. Sometimes it's just a signal strength issue.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction": "Has the connection been more stable since reconnecting?",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "WiFi seems stable now. If it keeps dropping, let me know -- there might be a driver update or configuration change needed.",
+      "failure_escalation": "WiFi still intermittent. IT admin should check WiFi driver updates, power management settings for the network adapter (disable 'Allow the computer to turn off this device to save power'), WiFi channel congestion, and access point health."
+    },
+    "NW-05": {
+      "label": "Specific website/service unreachable",
+      "precondition": "One website or service not loading while others work fine",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Try opening the same website in a different browser (if you're using Chrome, try Edge, or vice versa).",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 2,
+          "instruction": "If it works in another browser, the issue is with your browser cache. In the browser that's not working, press Ctrl+Shift+Del to clear your browsing data, then try the site again.",
+          "wait_for_confirmation": true
+        },
+        {
+          "step": 3,
+          "instruction_if_no": "Can you try the website on your phone (using your mobile data, not WiFi)? This tells us if the site itself is down.",
+          "wait_for_confirmation": true
+        }
+      ],
+      "success_message": "The site is loading now. Browser cache can sometimes cause websites to act up.",
+      "failure_escalation": "Site unreachable from all browsers and devices. IT admin should check if the site is genuinely down (use downdetector.com), check DNS resolution, verify firewall/proxy rules aren't blocking it, and check if it's a known service outage."
+    }
+  }
+}

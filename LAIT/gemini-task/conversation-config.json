@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Configuration for the LotusAssist IT Support Triage Gemini AI conversation task",
+
+  "model": {
+    "name": "gemini-2.0-flash",
+    "temperature": 0.3,
+    "top_p": 0.85,
+    "max_output_tokens": 1024,
+    "notes": "Low temperature for consistent, predictable triage responses. Flash model for fast response times in real-time chat."
+  },
+
+  "safety_settings": {
+    "harassment": "BLOCK_MEDIUM_AND_ABOVE",
+    "hate_speech": "BLOCK_MEDIUM_AND_ABOVE",
+    "sexually_explicit": "BLOCK_MEDIUM_AND_ABOVE",
+    "dangerous_content": "BLOCK_MEDIUM_AND_ABOVE"
+  },
+
+  "system_instruction_source": "./system-prompt.md",
+  "taxonomy_source": "../schema/taxonomy.json",
+  "resolution_paths_source": "../self-service/resolution-paths.json",
+  "ticket_schema_source": "../schema/ticket-schema.json",
+
+  "auto_capture": {
+    "timestamp": {
+      "enabled": true,
+      "timezone": "Australia/Brisbane",
+      "format": "ISO8601",
+      "notes": "Auto-captured at session start. NEVER asked as a conversation question."
+    },
+    "user_identity": {
+      "source": "m365_sso",
+      "fields": ["display_name", "email"],
+      "notes": "Pulled from authenticated M365 session. NEVER asked as a conversation question."
+    },
+    "user_agent": {
+      "enabled": true,
+      "notes": "Browser/device fingerprint captured from HTTP headers."
+    }
+  },
+
+  "conversation_rules": {
+    "max_diagnostic_questions": 4,
+    "max_self_service_attempts": 1,
+    "max_steps_per_self_service": 4,
+    "present_steps_one_at_a_time": true,
+    "acknowledge_each_answer": true,
+    "never_ask": [
+      "location",
+      "time",
+      "name",
+      "password",
+      "category_selection"
+    ],
+    "always_escalate_categories": [
+      "SECURITY",
+      "ACCESS_REQUEST"
+    ],
+    "always_escalate_subcategories": [
+      "AC-02",
+      "AC-03",
+      "DV-06"
+    ]
+  },
+
+  "priority_definitions": {
+    "P1": {
+      "label": "URGENT",
+      "description": "Security concern, multi-user outage, or work completely blocked with no workaround",
+      "sla_response_minutes": 60
+    },
+    "P2": {
+      "label": "HIGH",
+      "description": "Single user blocked or time-sensitive issue",
+      "sla_response_minutes": 240
+    },
+    "P3": {
+      "label": "NORMAL",
+      "description": "Single user affected, workaround available",
+      "sla_response_minutes": 1440
+    },
+    "P4": {
+      "label": "LOW",
+      "description": "Feature request, nice-to-have, or non-urgent improvement",
+      "sla_response_minutes": 4320
+    }
+  },
+
+  "escalation": {
+    "notify_method": "email",
+    "notify_address": "it-admin@lotusassist.com.au",
+    "p1_additional_notify": true,
+    "outage_detection": {
+      "enabled": true,
+      "threshold_same_category_minutes": 15,
+      "threshold_same_category_count": 3,
+      "notes": "If 3+ conversations report the same category within 15 minutes, flag as potential outage"
+    }
+  },
+
+  "ticket_generation": {
+    "id_format": "LA-{YYYYMMDD}-{NNNN}",
+    "always_generate": true,
+    "include_conversation_summary": true,
+    "include_ai_reasoning": true,
+    "include_recommended_actions": true,
+    "notes": "A structured ticket is generated for EVERY conversation, even resolved ones. This builds a knowledge base for recurring issues."
+  },
+
+  "locale": {
+    "language": "en-AU",
+    "spelling": "Australian English",
+    "examples": {
+      "organise": "not organize",
+      "colour": "not color",
+      "licence": "not license (noun)",
+      "centre": "not center"
+    }
+  }
+}

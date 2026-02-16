@@ -1,0 +1,345 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LotusAssist IT Ticket Schema",
+  "description": "Structured output produced by the Gemini AI conversation task at the end of every support interaction",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["ticket"],
+  "properties": {
+    "ticket": {
+      "type": "object",
+      "required": [
+        "id",
+        "created_at",
+        "status",
+        "reporter",
+        "classification",
+        "priority",
+        "environment",
+        "issue_details",
+        "self_service_attempted",
+        "conversation_summary",
+        "metadata"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique ticket ID in format LA-YYYYMMDD-NNNN",
+          "pattern": "^LA-\\d{8}-\\d{4}$",
+          "examples": ["LA-20260216-0001"]
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO 8601 timestamp with AEST timezone. Auto-captured, never asked.",
+          "format": "date-time",
+          "examples": ["2026-02-16T14:32:00+10:00"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Ticket status: resolved if self-service fixed it, open if escalated",
+          "enum": ["open", "resolved"]
+        },
+        "reporter": {
+          "type": "object",
+          "description": "User who reported the issue. Auto-captured from M365 SSO session.",
+          "required": ["display_name", "email", "auto_captured"],
+          "properties": {
+            "display_name": {
+              "type": "string",
+              "description": "User's display name from M365 SSO. Auto-captured."
+            },
+            "email": {
+              "type": "string",
+              "description": "User's email address from M365 SSO. Auto-captured.",
+              "format": "email"
+            },
+            "auto_captured": {
+              "type": "boolean",
+              "description": "Always true - reporter info is never asked, always from session context",
+              "const": true
+            }
+          }
+        },
+        "classification": {
+          "type": "object",
+          "description": "AI-determined issue classification",
+          "required": ["category", "category_label", "sub_category", "sub_category_label", "confidence"],
+          "properties": {
+            "category": {
+              "type": "string",
+              "description": "Internal category code",
+              "enum": ["EMAIL", "FILES", "SOFTWARE", "ACCOUNT", "TEAMS", "DEVICE", "SECURITY", "ACCESS_REQUEST", "NETWORK"]
+            },
+            "category_label": {
+              "type": "string",
+              "description": "Human-readable category name"
+            },
+            "sub_category": {
+              "type": "string",
+              "description": "Sub-category code (e.g., EM-02, FL-01)",
+              "pattern": "^[A-Z]{2}-\\d{2}$"
+            },
+            "sub_category_label": {
+              "type": "string",
+              "description": "Human-readable sub-category name"
+            },
+            "confidence": {
+              "type": "string",
+              "description": "AI confidence in classification",
+              "enum": ["HIGH", "MEDIUM", "LOW"]
+            },
+            "ai_reasoning": {
+              "type": "string",
+              "description": "Brief explanation of why this classification was chosen"
+            }
+          }
+        },
+        "priority": {
+          "type": "object",
+          "description": "Ticket priority based on impact and urgency",
+          "required": ["level", "label", "rationale"],
+          "properties": {
+            "level": {
+              "type": "string",
+              "description": "Priority level code",
+              "enum": ["P1", "P2", "P3", "P4"]
+            },
+            "label": {
+              "type": "string",
+              "description": "Priority label",
+              "enum": ["URGENT", "HIGH", "NORMAL", "LOW"]
+            },
+            "rationale": {
+              "type": "string",
+              "description": "Why this priority was assigned"
+            }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "description": "Technical environment details. Mix of auto-captured and conversationally gathered.",
+          "properties": {
+            "device_type": {
+              "type": "string",
+              "description": "User's device type, gathered naturally in conversation",
+              "enum": ["laptop", "desktop", "phone", "tablet", "unknown"]
+            },
+            "device_model": {
+              "type": ["string", "null"],
+              "description": "Specific device model if reported by user (e.g., 'Dell Latitude'). Only captured for hardware issues."
+            },
+            "os": {
+              "type": ["string", "null"],
+              "description": "Operating system if known",
+              "examples": ["Windows 11", "Windows 10", "macOS", "iOS", "Android"]
+            },
+            "client_type": {
+              "type": ["string", "null"],
+              "description": "Specific client application if relevant (e.g., 'Outlook Desktop (Classic)', 'Teams Web')"
+            },
+            "user_agent": {
+              "type": ["string", "null"],
+              "description": "Browser/device user-agent string. Auto-captured from session."
+            },
+            "work_location": {
+              "type": ["string", "null"],
+              "description": "Only captured if the user volunteers this naturally (e.g., 'office', 'home', 'client site'). NEVER explicitly asked as a triage question."
+            }
+          }
+        },
+        "issue_details": {
+          "type": "object",
+          "description": "Details of the reported issue",
+          "required": ["user_description"],
+          "properties": {
+            "user_description": {
+              "type": "string",
+              "description": "Verbatim first description from the user - their exact words"
+            },
+            "onset": {
+              "type": ["string", "null"],
+              "description": "When the issue started (e.g., 'this morning', 'after the update yesterday', 'about an hour ago')"
+            },
+            "scope": {
+              "type": ["string", "null"],
+              "description": "Who is affected: 'just me', 'my team', 'everyone', 'multiple people'"
+            },
+            "error_messages": {
+              "type": ["string", "null"],
+              "description": "Any error messages the user reported"
+            },
+            "recent_changes": {
+              "type": ["string", "null"],
+              "description": "Any recent changes that may be related (password change, new phone, update, etc.)"
+            }
+          }
+        },
+        "diagnostic_data": {
+          "type": "object",
+          "description": "Category-specific diagnostic information gathered during the conversation. Fields vary by category.",
+          "additionalProperties": true,
+          "properties": {
+            "outlook_client_type": {
+              "type": ["string", "null"],
+              "description": "EMAIL category: Desktop Classic, Desktop New, Web, Mobile"
+            },
+            "mailbox_type": {
+              "type": ["string", "null"],
+              "description": "EMAIL category: personal or shared"
+            },
+            "recent_credential_change": {
+              "type": ["boolean", "null"],
+              "description": "EMAIL/ACCOUNT category: whether password or MFA recently changed"
+            },
+            "onedrive_running": {
+              "type": ["boolean", "null"],
+              "description": "FILES category: whether OneDrive icon is visible in taskbar"
+            },
+            "sync_status_visual": {
+              "type": ["string", "null"],
+              "description": "FILES category: what the sync icon looks like (green check, red x, orange warning, spinning)"
+            },
+            "file_location": {
+              "type": ["string", "null"],
+              "description": "FILES category: personal OneDrive, shared folder, or SharePoint"
+            },
+            "affected_application": {
+              "type": ["string", "null"],
+              "description": "SOFTWARE category: which app is affected"
+            },
+            "office_version_info": {
+              "type": ["string", "null"],
+              "description": "SOFTWARE category: version info from File > Account"
+            },
+            "target_service": {
+              "type": ["string", "null"],
+              "description": "ACCOUNT category: which service they're trying to access"
+            },
+            "mfa_status": {
+              "type": ["string", "null"],
+              "description": "ACCOUNT category: whether they have access to Authenticator app"
+            },
+            "device_ownership": {
+              "type": ["string", "null"],
+              "description": "ACCOUNT category: work device or personal device"
+            },
+            "teams_client_type": {
+              "type": ["string", "null"],
+              "description": "TEAMS category: desktop app, web, or mobile"
+            },
+            "audio_device_check": {
+              "type": ["boolean", "null"],
+              "description": "TEAMS category: whether user checked audio device settings"
+            },
+            "device_model": {
+              "type": ["string", "null"],
+              "description": "DEVICE category: make and model of device"
+            },
+            "power_state": {
+              "type": ["string", "null"],
+              "description": "DEVICE category: on, off, partial, blue screen"
+            },
+            "restart_attempted": {
+              "type": ["boolean", "null"],
+              "description": "DEVICE category: whether full restart was attempted"
+            },
+            "incident_description": {
+              "type": ["string", "null"],
+              "description": "SECURITY category: what happened in detail"
+            },
+            "credential_exposure": {
+              "type": ["boolean", "null"],
+              "description": "SECURITY category: whether user entered credentials on suspicious site"
+            },
+            "connection_type": {
+              "type": ["string", "null"],
+              "description": "NETWORK category: WiFi, ethernet, mobile data"
+            },
+            "outage_scope": {
+              "type": ["string", "null"],
+              "description": "NETWORK category: just this user, nearby users, whole office"
+            }
+          }
+        },
+        "self_service_attempted": {
+          "type": "object",
+          "description": "Record of self-service resolution attempts",
+          "required": ["attempted"],
+          "properties": {
+            "attempted": {
+              "type": "boolean",
+              "description": "Whether self-service was attempted (false for security, access requests, etc.)"
+            },
+            "skipped_reason": {
+              "type": ["string", "null"],
+              "description": "If not attempted, why (e.g., 'Security concern - immediate escalation', 'Access request - admin action required')"
+            },
+            "steps_tried": {
+              "type": "array",
+              "description": "List of self-service steps attempted and their outcomes",
+              "items": {
+                "type": "string"
+              }
+            },
+            "resolved": {
+              "type": ["boolean", "null"],
+              "description": "Whether self-service resolved the issue. null if not attempted."
+            }
+          }
+        },
+        "escalation": {
+          "type": ["object", "null"],
+          "description": "Escalation details. Only present if the issue was not resolved by self-service.",
+          "properties": {
+            "escalated": {
+              "type": "boolean",
+              "const": true
+            },
+            "reason": {
+              "type": "string",
+              "description": "Why the issue is being escalated"
+            },
+            "recommended_action": {
+              "type": "string",
+              "description": "AI's recommended next steps for the IT admin"
+            },
+            "possible_outage": {
+              "type": "boolean",
+              "description": "True if multiple users are affected or this looks like a service outage",
+              "default": false
+            }
+          }
+        },
+        "conversation_summary": {
+          "type": "string",
+          "description": "Plain-language summary paragraph for the IT admin. Captures the full story: what the user reported, what was tried, and what happened."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Conversation metadata. All auto-captured.",
+          "required": ["ai_model", "schema_version"],
+          "properties": {
+            "conversation_duration_seconds": {
+              "type": "integer",
+              "description": "Total conversation duration in seconds"
+            },
+            "messages_exchanged": {
+              "type": "integer",
+              "description": "Total number of messages in the conversation"
+            },
+            "ai_model": {
+              "type": "string",
+              "description": "Gemini model used for this conversation",
+              "examples": ["gemini-2.0-flash"]
+            },
+            "schema_version": {
+              "type": "string",
+              "description": "Version of this ticket schema",
+              "const": "1.0.0"
+            }
+          }
+        }
+      }
+    }
+  }
+}
