@@ -84,12 +84,18 @@ class Ticket(BaseModel):
     userEmail: str
     userPhone: Optional[str] = None
     criticality: str
+    priority: Optional[str] = None
     status: str
     category: Optional[str] = "General"
+    subCategory: Optional[str] = None
     location: Optional[str] = None
     availability: Optional[str] = None
     thinkingLog: Optional[str] = None
     transcript: List[dict]
+    securityFlag: Optional[bool] = False
+    outageFlag: Optional[bool] = False
+    selfServiceAttempted: Optional[bool] = False
+    selfServiceResult: Optional[str] = None
 
 # --- 5. API Endpoints ---
 
@@ -111,6 +117,19 @@ async def upsert_ticket(ticket: Ticket):
             try: phone_val = int(digits)
             except: phone_val = None
 
+    # Build enhanced thinking log with LAIT metadata
+    thinking_data = ticket.thinkingLog or ""
+    if ticket.priority or ticket.subCategory or ticket.securityFlag or ticket.outageFlag:
+        lait_meta = json.dumps({
+            "priority": ticket.priority,
+            "sub_category": ticket.subCategory,
+            "security_flag": ticket.securityFlag,
+            "outage_flag": ticket.outageFlag,
+            "self_service_attempted": ticket.selfServiceAttempted,
+            "self_service_result": ticket.selfServiceResult,
+        })
+        thinking_data = f"{thinking_data}\n---LAIT_META---\n{lait_meta}" if thinking_data else lait_meta
+
     field_data = {
         "Title": ticket.summary,
         "field_1": ticket.category,            # Category
@@ -122,7 +141,7 @@ async def upsert_ticket(ticket: Ticket):
         "field_7": ticket.criticality,         # Criticality (Choice dropdown)
         "field_8": ticket.status,              # Status (Choice dropdown)
         "field_9": json.dumps(ticket.transcript),  # Transcript
-        "field_10": ticket.thinkingLog or ""   # ThinkingLog
+        "field_10": thinking_data              # ThinkingLog + LAIT metadata
     }
     # Strip None values — SP rejects explicit nulls on some column types
     field_data = {k: v for k, v in field_data.items() if v is not None}
@@ -296,7 +315,7 @@ Conversation:
 
 Generate a JSON response with:
 - title: A clear, searchable question (e.g., "How to fix Outlook not syncing?")
-- category: One of: Microsoft 365, Xero, Careview, Hardware, Network, General
+- category: One of: Microsoft 365, Identity & Access, Xero, Careview, enableHR, Hardware, Network & Connectivity, Security, General
 - answer: Step-by-step solution (200-300 words)
 - keywords: Array of 3-5 searchable keywords
 

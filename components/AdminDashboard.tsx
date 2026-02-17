@@ -294,10 +294,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ tickets, onStatusChange
                   className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-primary_3 font-bold text-primary_1 cursor-pointer"
                 >
                   <option>Microsoft 365</option>
+                  <option>Identity & Access</option>
                   <option>Xero</option>
                   <option>Careview</option>
+                  <option>enableHR</option>
                   <option>Hardware</option>
-                  <option>Network</option>
+                  <option>Network & Connectivity</option>
+                  <option>Security</option>
                   <option>General</option>
                 </select>
               </div>

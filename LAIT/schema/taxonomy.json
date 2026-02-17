@@ -1,0 +1,336 @@
+{
+  "version": "1.0.0",
+  "description": "Issue classification taxonomy for Lotus Assist IT Support — M365 Business Premium environment (20-30 users)",
+  "categories": [
+    {
+      "id": "microsoft_365",
+      "label": "Microsoft 365",
+      "description": "All M365 productivity suite issues",
+      "sub_categories": [
+        {
+          "id": "outlook_sync",
+          "label": "Outlook - Sync Issues",
+          "keywords": ["outlook", "email not syncing", "inbox not updating", "outlook stuck", "cached mode", "ost file"]
+        },
+        {
+          "id": "outlook_cannot_send",
+          "label": "Outlook - Cannot Send/Receive",
+          "keywords": ["can't send email", "email stuck in outbox", "not receiving emails", "send receive error", "delivery failed"]
+        },
+        {
+          "id": "outlook_calendar",
+          "label": "Outlook - Calendar Issues",
+          "keywords": ["calendar not showing", "meeting invite", "shared calendar", "room booking", "calendar sync"]
+        },
+        {
+          "id": "outlook_search",
+          "label": "Outlook - Search Not Working",
+          "keywords": ["outlook search", "search not finding", "indexing", "search broken", "can't find email"]
+        },
+        {
+          "id": "teams_audio_video",
+          "label": "Teams - Audio/Video Issues",
+          "keywords": ["teams audio", "can't hear", "microphone not working", "camera not working", "teams video", "echo", "no sound"]
+        },
+        {
+          "id": "teams_meetings",
+          "label": "Teams - Meeting Issues",
+          "keywords": ["teams meeting", "can't join meeting", "meeting link broken", "screen share not working", "teams frozen"]
+        },
+        {
+          "id": "teams_chat",
+          "label": "Teams - Chat & Messaging",
+          "keywords": ["teams chat", "messages not sending", "teams notifications", "chat history missing"]
+        },
+        {
+          "id": "sharepoint_access",
+          "label": "SharePoint - Access Issues",
+          "keywords": ["sharepoint", "access denied", "can't open sharepoint", "permission denied", "sharepoint error"]
+        },
+        {
+          "id": "sharepoint_sync",
+          "label": "SharePoint - Sync Issues",
+          "keywords": ["sharepoint sync", "files not syncing", "sync conflict", "onedrive sharepoint"]
+        },
+        {
+          "id": "onedrive_sync",
+          "label": "OneDrive - Sync Issues",
+          "keywords": ["onedrive", "onedrive not syncing", "onedrive full", "onedrive error", "files not uploading"]
+        },
+        {
+          "id": "onedrive_storage",
+          "label": "OneDrive - Storage Full",
+          "keywords": ["onedrive storage", "onedrive full", "no space", "storage limit", "quota exceeded"]
+        },
+        {
+          "id": "office_apps_crash",
+          "label": "Office Apps - Crashing/Freezing",
+          "keywords": ["word crashing", "excel freezing", "powerpoint not responding", "office crash", "not responding", "office frozen"]
+        },
+        {
+          "id": "office_apps_activation",
+          "label": "Office Apps - Activation Issues",
+          "keywords": ["office activation", "unlicensed product", "activate office", "license expired", "subscription expired"]
+        },
+        {
+          "id": "office_apps_file_corruption",
+          "label": "Office Apps - File Corruption",
+          "keywords": ["file corrupted", "can't open file", "file damaged", "recover file", "document recovery"]
+        }
+      ]
+    },
+    {
+      "id": "identity_access",
+      "label": "Identity & Access",
+      "description": "Azure AD/Entra ID, MFA, SSO, password and login issues",
+      "sub_categories": [
+        {
+          "id": "password_reset",
+          "label": "Password Reset",
+          "keywords": ["forgot password", "password expired", "reset password", "can't log in", "locked out", "password not working"]
+        },
+        {
+          "id": "mfa_issues",
+          "label": "MFA/2FA Issues",
+          "keywords": ["mfa", "two factor", "authenticator", "verification code", "mfa not working", "new phone mfa"]
+        },
+        {
+          "id": "sso_issues",
+          "label": "Single Sign-On Issues",
+          "keywords": ["sso", "single sign on", "login loop", "keeps asking to sign in", "authentication failed"]
+        },
+        {
+          "id": "account_locked",
+          "label": "Account Locked Out",
+          "keywords": ["account locked", "too many attempts", "locked out", "account disabled"]
+        },
+        {
+          "id": "conditional_access",
+          "label": "Conditional Access Policy",
+          "keywords": ["blocked by policy", "conditional access", "can't access from", "device not compliant"]
+        }
+      ]
+    },
+    {
+      "id": "xero",
+      "label": "Xero",
+      "description": "Accounting platform issues",
+      "sub_categories": [
+        {
+          "id": "xero_login",
+          "label": "Xero - Login Issues",
+          "keywords": ["xero login", "can't access xero", "xero password", "xero sso"]
+        },
+        {
+          "id": "xero_bank_feeds",
+          "label": "Xero - Bank Feed Issues",
+          "keywords": ["bank feed", "transactions not importing", "bank connection", "xero bank"]
+        },
+        {
+          "id": "xero_invoicing",
+          "label": "Xero - Invoicing Issues",
+          "keywords": ["invoice", "xero invoice", "can't create invoice", "invoice template"]
+        },
+        {
+          "id": "xero_reports",
+          "label": "Xero - Reporting Issues",
+          "keywords": ["xero report", "report not loading", "export report", "xero dashboard"]
+        },
+        {
+          "id": "xero_integration",
+          "label": "Xero - Integration Issues",
+          "keywords": ["xero integration", "xero api", "xero connected app", "third party xero"]
+        }
+      ]
+    },
+    {
+      "id": "careview",
+      "label": "Careview",
+      "description": "Care management application issues",
+      "sub_categories": [
+        {
+          "id": "careview_login",
+          "label": "Careview - Login Issues",
+          "keywords": ["careview login", "can't access careview", "careview down", "careview password"]
+        },
+        {
+          "id": "careview_records",
+          "label": "Careview - Client Records",
+          "keywords": ["client record", "careview record", "can't find client", "record not saving", "careview data"]
+        },
+        {
+          "id": "careview_reporting",
+          "label": "Careview - Reporting",
+          "keywords": ["careview report", "report error", "careview export", "careview printing"]
+        },
+        {
+          "id": "careview_slow",
+          "label": "Careview - Performance",
+          "keywords": ["careview slow", "careview loading", "careview timeout", "careview not responding"]
+        },
+        {
+          "id": "careview_database",
+          "label": "Careview - Database Issues",
+          "keywords": ["careview database", "database lock", "data missing", "careview sync"]
+        }
+      ]
+    },
+    {
+      "id": "enablehr",
+      "label": "enableHR",
+      "description": "HR platform issues",
+      "sub_categories": [
+        {
+          "id": "enablehr_login",
+          "label": "enableHR - Login Issues",
+          "keywords": ["enablehr login", "can't access enablehr", "enablehr password", "hr system login"]
+        },
+        {
+          "id": "enablehr_leave",
+          "label": "enableHR - Leave Management",
+          "keywords": ["leave request", "leave balance", "annual leave", "sick leave", "enablehr leave"]
+        },
+        {
+          "id": "enablehr_payroll",
+          "label": "enableHR - Payroll",
+          "keywords": ["payslip", "payroll", "pay not showing", "enablehr pay"]
+        },
+        {
+          "id": "enablehr_documents",
+          "label": "enableHR - Documents",
+          "keywords": ["enablehr document", "hr document", "employment contract", "hr policy"]
+        }
+      ]
+    },
+    {
+      "id": "hardware",
+      "label": "Hardware",
+      "description": "Physical device issues",
+      "sub_categories": [
+        {
+          "id": "laptop_performance",
+          "label": "Laptop - Performance Issues",
+          "keywords": ["laptop slow", "computer slow", "running slow", "freezing", "fan loud", "overheating"]
+        },
+        {
+          "id": "laptop_display",
+          "label": "Laptop - Display Issues",
+          "keywords": ["screen", "display", "monitor", "external display", "screen flickering", "resolution", "dual monitor"]
+        },
+        {
+          "id": "laptop_keyboard_mouse",
+          "label": "Laptop - Keyboard/Mouse/Trackpad",
+          "keywords": ["keyboard not working", "mouse not working", "trackpad", "keys stuck", "bluetooth mouse"]
+        },
+        {
+          "id": "laptop_battery",
+          "label": "Laptop - Battery/Charging",
+          "keywords": ["battery", "not charging", "battery drain", "power adapter", "won't turn on"]
+        },
+        {
+          "id": "laptop_docking",
+          "label": "Laptop - Docking Station",
+          "keywords": ["dock", "docking station", "usb hub", "dock not working", "monitors not detected"]
+        },
+        {
+          "id": "printer_issues",
+          "label": "Printer Issues",
+          "keywords": ["printer", "can't print", "print queue", "printer offline", "paper jam", "toner", "printer not found"]
+        },
+        {
+          "id": "peripheral_issues",
+          "label": "Peripheral Issues",
+          "keywords": ["usb", "headset", "webcam", "scanner", "peripheral not detected"]
+        }
+      ]
+    },
+    {
+      "id": "network",
+      "label": "Network & Connectivity",
+      "description": "Network, internet, VPN, and Wi-Fi issues",
+      "sub_categories": [
+        {
+          "id": "wifi_issues",
+          "label": "Wi-Fi Connection Issues",
+          "keywords": ["wifi", "wi-fi", "wireless", "can't connect to wifi", "wifi dropping", "no internet"]
+        },
+        {
+          "id": "vpn_issues",
+          "label": "VPN Issues",
+          "keywords": ["vpn", "can't connect vpn", "vpn disconnecting", "remote access", "vpn slow"]
+        },
+        {
+          "id": "internet_slow",
+          "label": "Internet - Slow Performance",
+          "keywords": ["internet slow", "slow connection", "buffering", "pages loading slow", "bandwidth"]
+        },
+        {
+          "id": "internet_down",
+          "label": "Internet - Complete Outage",
+          "keywords": ["no internet", "internet down", "can't access anything", "connection lost", "network down"]
+        },
+        {
+          "id": "dns_issues",
+          "label": "DNS Issues",
+          "keywords": ["dns", "website not resolving", "can't reach website", "dns error"]
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "label": "Security",
+      "description": "Security incidents — ALWAYS P1, ALWAYS escalate immediately",
+      "always_escalate": true,
+      "default_priority": "P1",
+      "sub_categories": [
+        {
+          "id": "phishing",
+          "label": "Phishing/Suspicious Email",
+          "keywords": ["phishing", "suspicious email", "dodgy email", "scam email", "fake email", "clicked a link"]
+        },
+        {
+          "id": "account_compromise",
+          "label": "Account Compromise",
+          "keywords": ["account hacked", "compromised", "someone logged into my account", "unauthorised access", "password changed without me"]
+        },
+        {
+          "id": "malware",
+          "label": "Malware/Virus",
+          "keywords": ["virus", "malware", "ransomware", "pop ups", "computer infected", "suspicious software"]
+        },
+        {
+          "id": "data_breach",
+          "label": "Data Breach/Loss",
+          "keywords": ["data breach", "data leaked", "sent to wrong person", "confidential", "data loss"]
+        }
+      ]
+    },
+    {
+      "id": "general",
+      "label": "General",
+      "description": "Issues that don't fit other categories",
+      "sub_categories": [
+        {
+          "id": "new_software_request",
+          "label": "New Software Request",
+          "keywords": ["install software", "need application", "new software", "software request"]
+        },
+        {
+          "id": "new_user_setup",
+          "label": "New User Setup",
+          "keywords": ["new starter", "new employee", "new user", "set up account", "onboarding"]
+        },
+        {
+          "id": "user_offboarding",
+          "label": "User Offboarding",
+          "keywords": ["leaving", "offboarding", "disable account", "remove access", "departing employee"]
+        },
+        {
+          "id": "general_question",
+          "label": "General IT Question",
+          "keywords": ["how do I", "where is", "how to", "help with", "training"]
+        }
+      ]
+    }
+  ]
+}

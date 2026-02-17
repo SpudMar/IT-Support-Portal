@@ -12,7 +12,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTicket }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: "Hi! I'm your Lotus Assist IT Assistant. Are you having trouble with Microsoft 365, Xero, Careview, or something else? Just let me know!" }
+    { role: 'model', content: "G'day! I'm your Lotus Assist IT Co-pilot. What's going on \u2014 having trouble with something?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -65,35 +65,37 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
 
             const followUpResponse = await chatWithGemini([
               ...currentMessages,
-              { role: 'system', content: `[SYSTEM] Knowledge Base Results: ${kbSummary}` } as any
+              { role: 'model', content: `Knowledge Base Results: ${kbSummary}` }
             ]);
             const kbText = extractText(followUpResponse);
             if (kbText) finalMessages.push({ role: 'model', content: kbText });
           } else if (fc.name === 'log_incident') {
             const args = fc.args as any;
+            const priorityToCriticality: Record<string, Criticality> = {
+              'P1': Criticality.HIGH,
+              'P2': Criticality.HIGH,
+              'P3': Criticality.MEDIUM,
+              'P4': Criticality.LOW,
+            };
             onTicketCreated({
               summary: args.summary,
               category: args.category,
-              criticality: args.criticality as Criticality,
+              criticality: priorityToCriticality[args.priority] || Criticality.MEDIUM,
               adminRequired: args.admin_required,
               transcript: currentMessages,
-              thinkingLog: `Agentic Decision: Issue detected in ${args.category}. Incident logged.`
+              thinkingLog: [
+                `Priority: ${args.priority}`,
+                args.sub_category ? `Sub-category: ${args.sub_category}` : null,
+                args.self_service_attempted ? `Self-service attempted: ${args.self_service_result || 'not_resolved'}` : 'Self-service: not attempted',
+                args.security_flag ? 'SECURITY INCIDENT' : null,
+                args.outage_flag ? 'POTENTIAL OUTAGE' : null,
+                args.ai_recommended_actions?.length ? `Recommended: ${args.ai_recommended_actions.join('; ')}` : null,
+              ].filter(Boolean).join(' | ')
             });
             setLastIncident(args);
-            const followUp = await chatWithGemini([...currentMessages, { role: 'system', content: `[SYSTEM] Incident logged for ${args.category}. Confirm to user.` } as any]);
+            const followUp = await chatWithGemini([...currentMessages, { role: 'model', content: `Incident logged for ${args.category} at ${args.priority} priority.` }]);
             const incidentText = extractText(followUp);
             if (incidentText) finalMessages.push({ role: 'model', content: incidentText });
-          } else if (fc.name === 'capture_logistics') {
-            const args = fc.args as any;
-            onTicketCreated({
-              location: args.location,
-              availability: args.availability,
-              userPhone: args.phone,
-              transcript: currentMessages
-            });
-            const followUp = await chatWithGemini([...currentMessages, { role: 'system', content: '[SYSTEM] Logistics and contact phone captured.' } as any]);
-            const logisticsText = extractText(followUp);
-            if (logisticsText) finalMessages.push({ role: 'model', content: logisticsText });
           }
         }
       } else {
@@ -122,7 +124,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
   return (
     <div className="flex flex-col h-[65vh] md:h-[70vh] max-w-4xl mx-auto bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-gray-100 ring-1 ring-black/5">
       <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-pale_grey/30">
-        {messages.map((msg, idx) => (
+        {messages.filter(msg => msg.role !== 'system').map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex gap-4 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md ${msg.role === 'user' ? 'bg-primary_2 text-white' : 'bg-white text-primary_1 border border-gray-100'}`}>
@@ -144,7 +146,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
             <CheckCircle2 size={24} className="text-primary_4" />
             <div>
               <p className="font-display font-bold text-primary_1">Incident Logged: {lastIncident.summary}</p>
-              <p className="text-[10px] text-primary_2 font-bold uppercase tracking-widest">Routing to: {lastIncident.category} Admin</p>
+              <p className="text-[10px] text-primary_2 font-bold uppercase tracking-widest">
+                {lastIncident.priority} {lastIncident.security_flag ? '| SECURITY' : ''} {lastIncident.outage_flag ? '| OUTAGE' : ''} | Routing to: {lastIncident.category} Admin
+              </p>
             </div>
           </div>
         )}

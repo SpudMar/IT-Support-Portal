@@ -5,6 +5,13 @@ export enum Criticality {
   LOW = 'Low'
 }
 
+export enum Priority {
+  P1 = 'P1',
+  P2 = 'P2',
+  P3 = 'P3',
+  P4 = 'P4'
+}
+
 export enum TicketStatus {
   NEW = 'New',
   IT_CONTACTED = 'IT Contacted',
@@ -12,22 +19,39 @@ export enum TicketStatus {
   CLOSED = 'Closed'
 }
 
+export type IssueCategory =
+  | 'Microsoft 365'
+  | 'Identity & Access'
+  | 'Xero'
+  | 'Careview'
+  | 'enableHR'
+  | 'Hardware'
+  | 'Network & Connectivity'
+  | 'Security'
+  | 'General';
+
 export interface Ticket {
   id: string;
-  sharepointId?: string; // Tracks the ID returned by our Python Bridge
+  sharepointId?: string;
   summary: string;
   userName: string;
   userEmail: string;
-  userPhone?: string; // Maps to StaffPhone in SharePoint
+  userPhone?: string;
   transcript: Message[];
   criticality: Criticality;
+  priority?: Priority;
   adminRequired: boolean;
   status: TicketStatus;
-  category?: string;
+  category?: IssueCategory | string;
+  subCategory?: string;
   location?: string;
   availability?: string;
   createdAt: number;
   thinkingLog?: string;
+  securityFlag?: boolean;
+  outageFlag?: boolean;
+  selfServiceAttempted?: boolean;
+  selfServiceResult?: 'resolved' | 'not_resolved' | 'not_attempted' | 'security_bypass';
 }
 
 export interface Message {
@@ -35,12 +59,6 @@ export interface Message {
   content: string;
   image?: string;
   isThinking?: boolean;
-}
-
-export interface Logistics {
-  location: "Home" | "Office" | "On-Site";
-  availability: string;
-  phone: string;
 }
 
 export interface KBArticle {
