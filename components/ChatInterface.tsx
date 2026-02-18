@@ -1,9 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Camera, User, Bot, CheckCircle2, BookOpen, Info } from 'lucide-react';
-import { chatWithGemini, extractText } from '../services/geminiService';
+import { chatWithGemini } from '../services/geminiService';
 import { Message, Ticket, Criticality } from '../types';
-import { apiService } from '../services/apiService';
 
 interface ChatInterfaceProps {
   onTicketCreated: (ticket: Partial<Ticket>) => void;
@@ -51,59 +50,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
     setIsLoading(true);
 
     try {
+      // Backend handles all Gemini calls, KB search, and function execution server-side
       const response = await chatWithGemini(currentMessages, image || undefined);
-      let finalMessages: Message[] = [];
 
-      if (response.functionCalls && response.functionCalls.length > 0) {
-        for (const fc of response.functionCalls) {
-          if (fc.name === 'search_knowledge_base') {
-            const args = fc.args as { query: string };
-            const kbResults = await apiService.searchKnowledgeBase(args.query);
-            const kbSummary = kbResults.length > 0
-              ? `Matches found: ${kbResults.map(r => r.title).join(', ')}. Details: ${kbResults.map(r => r.content).join('\n')}`
-              : "No matches found.";
-
-            const followUpResponse = await chatWithGemini([
-              ...currentMessages,
-              { role: 'model', content: `Knowledge Base Results: ${kbSummary}` }
-            ]);
-            const kbText = extractText(followUpResponse);
-            if (kbText) finalMessages.push({ role: 'model', content: kbText });
-          } else if (fc.name === 'log_incident') {
-            const args = fc.args as any;
-            const priorityToCriticality: Record<string, Criticality> = {
-              'P1': Criticality.HIGH,
-              'P2': Criticality.HIGH,
-              'P3': Criticality.MEDIUM,
-              'P4': Criticality.LOW,
-            };
-            onTicketCreated({
-              summary: args.summary,
-              category: args.category,
-              criticality: priorityToCriticality[args.priority] || Criticality.MEDIUM,
-              adminRequired: args.admin_required,
-              transcript: currentMessages,
-              thinkingLog: [
-                `Priority: ${args.priority}`,
-                args.sub_category ? `Sub-category: ${args.sub_category}` : null,
-                args.self_service_attempted ? `Self-service attempted: ${args.self_service_result || 'not_resolved'}` : 'Self-service: not attempted',
-                args.security_flag ? 'SECURITY INCIDENT' : null,
-                args.outage_flag ? 'POTENTIAL OUTAGE' : null,
-                args.ai_recommended_actions?.length ? `Recommended: ${args.ai_recommended_actions.join('; ')}` : null,
-              ].filter(Boolean).join(' | ')
-            });
-            setLastIncident(args);
-            const followUp = await chatWithGemini([...currentMessages, { role: 'model', content: `Incident logged for ${args.category} at ${args.priority} priority.` }]);
-            const incidentText = extractText(followUp);
-            if (incidentText) finalMessages.push({ role: 'model', content: incidentText });
-          }
-        }
-      } else {
-        const responseText = extractText(response);
-        if (responseText) finalMessages.push({ role: 'model', content: responseText });
+      // Handle incident data if the AI decided to log an incident
+      if (response.incidentData) {
+        const args = response.incidentData;
+        const priorityToCriticality: Record<string, Criticality> = {
+          'P1': Criticality.HIGH,
+          'P2': Criticality.HIGH,
+          'P3': Criticality.MEDIUM,
+          'P4': Criticality.LOW,
+        };
+        onTicketCreated({
+          summary: args.summary,
+          category: args.category,
+          criticality: priorityToCriticality[args.priority] || Criticality.MEDIUM,
+          adminRequired: args.admin_required,
+          transcript: currentMessages,
+          thinkingLog: [
+            `Priority: ${args.priority}`,
+            args.sub_category ? `Sub-category: ${args.sub_category}` : null,
+            args.self_service_attempted ? `Self-service attempted: ${args.self_service_result || 'not_resolved'}` : 'Self-service: not attempted',
+            args.security_flag ? 'SECURITY INCIDENT' : null,
+            args.outage_flag ? 'POTENTIAL OUTAGE' : null,
+            args.ai_recommended_actions?.length ? `Recommended: ${args.ai_recommended_actions.join('; ')}` : null,
+          ].filter(Boolean).join(' | ')
+        });
+        setLastIncident(args);
       }
 
-      setMessages(prev => [...prev, ...finalMessages]);
+      // Add the AI response text to the conversation
+      if (response.text) {
+        setMessages(prev => [...prev, { role: 'model', content: response.text }]);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       setMessages(prev => [...prev, { role: 'model', content: "Network error. Try again?" }]);

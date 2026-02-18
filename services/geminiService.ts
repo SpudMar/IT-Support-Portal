@@ -1,161 +1,124 @@
 
-import { GoogleGenAI, Type, FunctionDeclaration, GenerateContentResponse } from "@google/genai";
-import { Message, Criticality, Ticket } from "../types";
-import { SYSTEM_INSTRUCTION, APP_MODELS } from "../constants";
+import { Message, Ticket } from "../types";
+import { getAuthHeaders } from "./apiService";
 
-const searchKnowledgeBaseDecl: FunctionDeclaration = {
-  name: 'search_knowledge_base',
-  parameters: {
-    type: Type.OBJECT,
-    description: 'Searches the Lotus Assist internal knowledge base for known issues and solutions.',
-    properties: {
-      query: {
-        type: Type.STRING,
-        description: 'The search query or keyword related to the issue.',
-      },
-    },
-    required: ['query'],
-  },
-};
+const API_BASE = "/api";
 
-const logIncidentDecl: FunctionDeclaration = {
-  name: 'log_incident',
-  parameters: {
-    type: Type.OBJECT,
-    description: 'Logs a structured IT support ticket for admin follow-up. Call when self-service fails, admin access is needed, security is detected, user is frustrated, or outage detected.',
-    properties: {
-      summary: {
-        type: Type.STRING,
-        description: 'A concise 10-word technical summary of the issue.',
-      },
-      category: {
-        type: Type.STRING,
-        description: 'Top-level issue category.',
-        enum: ['Microsoft 365', 'Identity & Access', 'Xero', 'Careview', 'enableHR', 'Hardware', 'Network & Connectivity', 'Security', 'General'],
-      },
-      sub_category: {
-        type: Type.STRING,
-        description: 'Specific sub-category (e.g. "Outlook - Sync Issues", "VPN Issues", "Phishing/Suspicious Email").',
-      },
-      priority: {
-        type: Type.STRING,
-        description: 'Priority level. P1=Critical (security/outage), P2=High (user blocked), P3=Medium (degraded), P4=Low (non-urgent).',
-        enum: ['P1', 'P2', 'P3', 'P4'],
-      },
-      admin_required: {
-        type: Type.BOOLEAN,
-        description: 'Whether the fix requires admin/elevated access.',
-      },
-      self_service_attempted: {
-        type: Type.BOOLEAN,
-        description: 'Whether a self-service fix was attempted before escalating.',
-      },
-      self_service_result: {
-        type: Type.STRING,
-        description: 'Outcome of the self-service attempt.',
-        enum: ['resolved', 'not_resolved', 'not_attempted', 'security_bypass'],
-      },
-      security_flag: {
-        type: Type.BOOLEAN,
-        description: 'True if this is a security incident requiring immediate attention.',
-      },
-      outage_flag: {
-        type: Type.BOOLEAN,
-        description: 'True if this appears to be part of a broader outage (3+ users).',
-      },
-      affected_application: {
-        type: Type.STRING,
-        description: 'The primary application or system affected.',
-      },
-      ai_recommended_actions: {
-        type: Type.ARRAY,
-        description: 'Suggested next steps for the IT admin.',
-        items: { type: Type.STRING },
-      },
-    },
-    required: ['summary', 'category', 'priority', 'admin_required', 'self_service_attempted'],
-  },
-};
+interface ChatResponse {
+  text: string;
+  functionCalls: Array<{ name: string; args: Record<string, any> }>;
+  incidentData: Record<string, any> | null;
+}
+
+interface AdminChatResponse {
+  text: string;
+}
 
 /**
- * Safely extract text from a Gemini response, ignoring thinking/thoughtSignature parts.
- * The .text accessor warns when non-text parts (from thinkingConfig) are present.
+ * Send a chat message to the server-side Gemini endpoint.
+ * The backend handles all Gemini SDK calls, function execution (KB search),
+ * and returns the final response text plus any incident data.
  */
-export function extractText(response: GenerateContentResponse): string {
-  try {
-    const parts = response.candidates?.[0]?.content?.parts || [];
-    return parts
-      .filter((p: any) => p.text !== undefined)
-      .map((p: any) => p.text)
-      .join('');
-  } catch {
-    // Fallback to .text if structure is unexpected
-    try { return response.text || ''; } catch { return ''; }
-  }
-}
-
 export async function chatWithGemini(
-  messages: Message[], 
+  messages: Message[],
   image?: string
-): Promise<GenerateContentResponse> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+): Promise<ChatResponse> {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        image: image || undefined,
+      }),
+    });
 
-  const contents = messages.map(msg => ({
-    role: msg.role === 'user' ? 'user' : 'model',
-    parts: [{ text: msg.content }]
-  }));
-
-  // Handle images by attaching to the last user message if applicable
-  if (image && contents.length > 0) {
-    const lastMsg = contents[contents.length - 1];
-    if (lastMsg.role === 'user') {
-      lastMsg.parts.push({
-        inlineData: {
-          mimeType: 'image/jpeg',
-          data: image.split(',')[1]
-        }
-      } as any);
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      console.error(`Chat API error ${response.status}:`, errorText);
+      return {
+        text: "Sorry, something went wrong connecting to the AI service. Please try again.",
+        functionCalls: [],
+        incidentData: null,
+      };
     }
-  }
 
-  return await ai.models.generateContent({
-    model: APP_MODELS.FLASH,
-    contents,
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTION,
-      thinkingConfig: { thinkingBudget: 24576 },
-      tools: [{ functionDeclarations: [searchKnowledgeBaseDecl, logIncidentDecl] }],
-    },
-  });
+    const data = await response.json();
+
+    if (data.error) {
+      return {
+        text: data.error,
+        functionCalls: [],
+        incidentData: null,
+      };
+    }
+
+    return {
+      text: data.text || "",
+      functionCalls: data.function_calls || [],
+      incidentData: data.incident_data || null,
+    };
+  } catch (error) {
+    console.error("Chat request failed:", error);
+    return {
+      text: "Network error. Please check your connection and try again.",
+      functionCalls: [],
+      incidentData: null,
+    };
+  }
 }
 
+/**
+ * Send an admin consultation message to the server-side Gemini Pro endpoint.
+ * The backend handles the full Gemini Pro interaction with ticket context.
+ */
 export async function chatWithAdminExpert(
   ticket: Ticket,
   adminMessages: Message[]
-): Promise<GenerateContentResponse> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+): Promise<AdminChatResponse> {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_BASE}/chat/admin`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        ticket: {
+          id: ticket.id,
+          category: ticket.category || "General",
+          summary: ticket.summary,
+          criticality: ticket.criticality,
+          sharepointId: ticket.sharepointId || undefined,
+        },
+        messages: adminMessages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      }),
+    });
 
-  const systemPrompt = `
-    You are the "Lotus Assist Senior IT Architect". You are assisting an IT Admin in resolving an incident.
-    USER INCIDENT CONTEXT:
-    - ID: ${ticket.id}
-    - SharePoint ID: ${ticket.sharepointId || 'Not yet synced'}
-    - Category: ${ticket.category || 'General'}
-    - Summary: ${ticket.summary}
-    - Criticality: ${ticket.criticality}
-    
-    MISSION: Provide high-level technical remediation steps. If the issue is complex (e.g., Azure Entra ID or Careview database locks), reason through dependencies.
-  `;
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      console.error(`Admin chat API error ${response.status}:`, errorText);
+      return {
+        text: "Sorry, something went wrong consulting the AI architect. Please try again.",
+      };
+    }
 
-  return await ai.models.generateContent({
-    model: APP_MODELS.PRO,
-    contents: adminMessages.map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }]
-    })),
-    config: {
-      systemInstruction: systemPrompt,
-      thinkingConfig: { thinkingBudget: 32768 },
-    },
-  });
+    const data = await response.json();
+
+    if (data.error) {
+      return { text: data.error };
+    }
+
+    return { text: data.text || "" };
+  } catch (error) {
+    console.error("Admin chat request failed:", error);
+    return {
+      text: "Network error. Please check your connection and try again.",
+    };
+  }
 }

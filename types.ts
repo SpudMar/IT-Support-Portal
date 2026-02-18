@@ -68,3 +68,66 @@ export interface KBArticle {
   content: string;
   keywords: string[];
 }
+
+// ── Admin Panel Types ──
+
+export interface AdminTicket {
+  sharepointId: string;
+  summary: string;
+  status: TicketStatus;
+  category: IssueCategory | string;
+  criticality: Criticality;
+  userName: string;
+  userEmail: string;
+  userPhone?: string;
+  location?: string;
+  availability?: string;
+  thinkingLog?: string;
+  transcript: Message[];
+  createdDateTime: string;
+  adminNotes?: AdminNote[];
+}
+
+export interface AdminTicketsResponse {
+  tickets: AdminTicket[];
+  total: number;
+}
+
+export interface AdminNote {
+  timestamp: string;
+  author: string;
+  note: string;
+}
+
+export interface AdminAnalytics {
+  total_tickets: number;
+  open_tickets: number;
+  tickets_today: number;
+  by_status: Record<string, number>;
+  by_category: Record<string, number>;
+  by_criticality: Record<string, number>;
+  recent_tickets: AdminTicket[];
+  tickets_by_day: { date: string; count: number }[];
+}
+
+export interface RoutingRule {
+  id: string;
+  category: string;
+  adminEmail: string;
+  adminPhone: string;
+  notifySms: boolean;
+}
+
+export interface AdminTicketUpdate {
+  status?: TicketStatus;
+  criticality?: Criticality;
+  category?: IssueCategory | string;
+  notes?: string;
+}
+
+export interface KBSuggestion {
+  title: string;
+  category: string;
+  answer: string;
+  keywords: string[];
+}
