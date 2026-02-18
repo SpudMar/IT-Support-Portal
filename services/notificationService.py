@@ -2,22 +2,34 @@
 Notification service for Teams channel messages, DMs, SMS, and threaded updates.
 
 Provides:
-- Teams channel posting with Adaptive Cards (send_channel_message)
-- Threaded replies to channel messages (reply_to_channel_message)
+- Teams channel posting via Power Automate webhook (send_channel_message)
+- Threaded replies via webhook (reply_to_channel_message)
 - Unified ticket notification (send_ticket_notification)
-- Status update threading (send_status_update_notification)
+- Status update notification (send_status_update_notification)
 - Resolution notification with KB trigger (send_resolution_notification)
-- Direct Teams DMs (send_teams_message) — existing
+- Direct Teams DMs (send_teams_message) — retained, not used in main flows
 - SMS via ClickSend (send_sms) — existing
 - Admin routing lookup (get_routing_info) — existing
 
-Required Graph API permissions:
-- Chat.Create, ChatMessage.Send — for DMs
-- ChannelMessage.Send — for channel posts and thread replies
+Channel posting uses a Power Automate HTTP-trigger webhook instead of the
+Graph API directly. The Managed Identity has no ChannelMessage.Send grant;
+the Power Automate flow owns the Teams connector and posts on our behalf.
+
+Webhook payload sent:  {"card": "<JSON-stringified Adaptive Card>"}
+Power Automate flow should:
+  Trigger : When an HTTP request is received
+  Action  : Post adaptive card in a chat or channel
+              Team    : IT Management Team
+              Channel : #it-support-tickets
+              Card    : @{triggerBody()?['card']}
+
+Required Graph API permissions (Managed Identity):
+- Chat.Create, ChatMessage.Send — only needed if DMs are re-enabled
 
 Environment variables:
-- TEAMS_TEAM_ID: The Team GUID for IT notification channel posts
-- TEAMS_CHANNEL_ID: The Channel GUID within that team
+- TEAMS_WEBHOOK_URL: Power Automate HTTP trigger URL for channel card posting
+- TEAMS_TEAM_ID: Kept for reference (no longer used for posting)
+- TEAMS_CHANNEL_ID: Kept for reference (no longer used for posting)
 - PORTAL_URL: Base URL of the portal (default: https://lotus-itsp-bridge.azurewebsites.net)
 - FALLBACK_ADMIN_EMAIL: Fallback admin email when routing lookup fails
 - FALLBACK_ADMIN_PHONE: Fallback admin phone when routing lookup fails
@@ -53,6 +65,7 @@ CLICKSEND_KEY = os.getenv("CLICKSEND_API_KEY")
 
 TEAMS_TEAM_ID = os.getenv("TEAMS_TEAM_ID")
 TEAMS_CHANNEL_ID = os.getenv("TEAMS_CHANNEL_ID")
+TEAMS_WEBHOOK_URL = os.getenv("TEAMS_WEBHOOK_URL")
 
 FALLBACK_ADMIN_EMAIL = os.getenv("FALLBACK_ADMIN_EMAIL", "it@lotusassist.com.au")
 FALLBACK_ADMIN_PHONE = os.getenv("FALLBACK_ADMIN_PHONE", "+61402633552")
@@ -64,38 +77,41 @@ GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 # Internal helpers
 # ──────────────────────────────────────────────
 
-async def _get_graph_token(graph_client: GraphServiceClient) -> str:
+async def _post_card_to_webhook(card: dict) -> bool:
     """
-    Extract a bearer token from the graph client's credential.
+    POST an Adaptive Card to the Power Automate HTTP-trigger webhook.
 
-    The GraphServiceClient wraps an Azure credential; we borrow it
-    to make direct REST calls for endpoints not well-supported by
-    the SDK (e.g., channel message attachments).
-    """
-    # The credential is stored on the adapter's auth provider
-    # For DefaultAzureCredential, we can call get_token directly
-    try:
-        # Access the credential through the request adapter
-        credential = graph_client._request_adapter._authentication_provider._credential
-        token = credential.get_token("https://graph.microsoft.com/.default")
-        return token.token
-    except AttributeError:
-        # Fallback: try using the adapter's auth provider directly
-        from azure.identity import DefaultAzureCredential
-        credential = DefaultAzureCredential()
-        token = credential.get_token("https://graph.microsoft.com/.default")
-        return token.token
+    Payload: {"card": "<JSON-stringified Adaptive Card>"}
 
+    The receiving Power Automate flow posts the card to the
+    #it-support-tickets Teams channel via its Teams connector.
 
-def _build_card_attachment(card: dict) -> dict:
+    Returns True on 2xx, False otherwise.
     """
-    Wrap an Adaptive Card in the Graph API attachment format
-    required for channel messages.
-    """
-    return {
-        "contentType": "application/vnd.microsoft.card.adaptive",
-        "content": card,
-    }
+    import json
+
+    if not TEAMS_WEBHOOK_URL:
+        logger.warning("TEAMS_WEBHOOK_URL not set — skipping channel notification.")
+        return False
+
+    payload = {"card": json.dumps(card)}
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            TEAMS_WEBHOOK_URL,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+        )
+
+    if response.status_code >= 400:
+        logger.error(
+            "Webhook post failed: status=%d body=%s",
+            response.status_code, response.text,
+        )
+        return False
+
+    logger.info("Webhook post succeeded: status=%d", response.status_code)
+    return True
 
 
 # ──────────────────────────────────────────────
@@ -289,160 +305,53 @@ async def get_routing_info(graph_client: GraphServiceClient, site_id: str, routi
 # Teams Channel Messaging (NEW)
 # ──────────────────────────────────────────────
 
-async def send_channel_message(graph_client: GraphServiceClient, team_id: str, channel_id: str, card: dict) -> str | None:
+async def send_channel_message(card: dict) -> bool:
     """
-    Posts an Adaptive Card to a Teams channel.
+    Posts an Adaptive Card to the #it-support-tickets Teams channel via
+    the Power Automate webhook (TEAMS_WEBHOOK_URL).
 
-    Uses: POST /teams/{team_id}/channels/{channel_id}/messages
-    Requires: ChannelMessage.Send Graph API application permission.
+    The Power Automate flow receives {"card": "<JSON string>"} and posts
+    the card to the channel using its own Teams connector — no Graph API
+    permission required on the Managed Identity.
 
     Args:
-        graph_client: Authenticated Microsoft Graph client.
-        team_id: GUID of the Teams team.
-        channel_id: GUID of the channel within the team.
         card: Adaptive Card dict (schema 1.4).
 
     Returns:
-        The message ID (str) for threading, or None on failure.
+        True if the webhook accepted the payload, False otherwise.
     """
     try:
-        token = await _get_graph_token(graph_client)
-        url = f"{GRAPH_BASE}/teams/{team_id}/channels/{channel_id}/messages"
-
-        payload = {
-            "body": {
-                "contentType": "html",
-                "content": "<attachment id=\"card\"></attachment>",
-            },
-            "attachments": [
-                {
-                    "id": "card",
-                    "contentType": "application/vnd.microsoft.card.adaptive",
-                    "content": str(card) if not isinstance(card, str) else card,
-                }
-            ],
-        }
-
-        # Graph API requires the card content as a JSON string inside the attachment
-        import json
-        payload["attachments"][0]["content"] = json.dumps(card)
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                url,
-                json=payload,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json",
-                },
-            )
-
-            if response.status_code >= 400:
-                logger.error(
-                    "Channel message post failed: status=%d team=%s channel=%s body=%s",
-                    response.status_code, team_id, channel_id, response.text
-                )
-                return None
-
-            result = response.json()
-            message_id = result.get("id")
-            logger.info(
-                "Channel message posted: message_id=%s team=%s channel=%s",
-                message_id, team_id, channel_id
-            )
-            return message_id
-
+        return await _post_card_to_webhook(card)
     except Exception as e:
-        logger.error(
-            "Channel message post exception: team=%s channel=%s error=%s",
-            team_id, channel_id, e
-        )
-        return None
+        logger.error("send_channel_message exception: %s", e)
+        return False
 
 
 async def reply_to_channel_message(
-    graph_client: GraphServiceClient,
-    team_id: str,
-    channel_id: str,
     message_id: str,
     card: dict,
 ) -> bool:
     """
-    Posts a reply to an existing channel message (threading).
+    Posts a follow-up card to the channel for an existing ticket thread.
 
-    Uses: POST /teams/{team_id}/channels/{channel_id}/messages/{message_id}/replies
-    Requires: ChannelMessage.Send Graph API application permission.
-
-    Handles the case where the original message was deleted by logging
-    the error and returning False (does not raise).
+    Note: Power Automate webhook does not expose thread-reply targeting,
+    so this posts a new top-level message to the channel. The Adaptive Card
+    itself includes the ticket ID and status context. The message_id
+    argument is accepted for API compatibility but is not used.
 
     Args:
-        graph_client: Authenticated Microsoft Graph client.
-        team_id: GUID of the Teams team.
-        channel_id: GUID of the channel within the team.
-        message_id: ID of the parent message to reply to.
+        message_id: Original channel message ID (unused — kept for compat).
         card: Adaptive Card dict (schema 1.4).
 
     Returns:
-        True if the reply was posted, False otherwise.
+        True if the webhook accepted the payload, False otherwise.
     """
     try:
-        token = await _get_graph_token(graph_client)
-        url = (
-            f"{GRAPH_BASE}/teams/{team_id}/channels/{channel_id}"
-            f"/messages/{message_id}/replies"
-        )
-
-        import json
-        payload = {
-            "body": {
-                "contentType": "html",
-                "content": "<attachment id=\"card\"></attachment>",
-            },
-            "attachments": [
-                {
-                    "id": "card",
-                    "contentType": "application/vnd.microsoft.card.adaptive",
-                    "content": json.dumps(card),
-                }
-            ],
-        }
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                url,
-                json=payload,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json",
-                },
-            )
-
-            if response.status_code == 404:
-                logger.warning(
-                    "Original channel message deleted or not found: "
-                    "message_id=%s team=%s channel=%s",
-                    message_id, team_id, channel_id
-                )
-                return False
-
-            if response.status_code >= 400:
-                logger.error(
-                    "Channel reply failed: status=%d message_id=%s body=%s",
-                    response.status_code, message_id, response.text
-                )
-                return False
-
-            logger.info(
-                "Channel reply posted: parent_message_id=%s team=%s channel=%s",
-                message_id, team_id, channel_id
-            )
-            return True
-
+        return await _post_card_to_webhook(card)
     except Exception as e:
         logger.error(
-            "Channel reply exception: message_id=%s error=%s",
-            message_id, e
+            "reply_to_channel_message exception: message_id=%s error=%s",
+            message_id, e,
         )
         return False
 
@@ -489,14 +398,13 @@ async def send_ticket_notification(
 
     category = ticket_data.get("category", "General")
 
-    # 1. Post Adaptive Card to #it-support-tickets Teams channel
-    if TEAMS_TEAM_ID and TEAMS_CHANNEL_ID:
+    # 1. Post Adaptive Card to #it-support-tickets Teams channel via webhook
+    if TEAMS_WEBHOOK_URL:
         try:
             card = build_new_ticket_card(ticket_data)
-            message_id = await send_channel_message(
-                graph_client, TEAMS_TEAM_ID, TEAMS_CHANNEL_ID, card
-            )
-            result["channel_message_id"] = message_id
+            posted = await send_channel_message(card)
+            if posted:
+                result["channel_message_id"] = "webhook"
         except Exception as e:
             logger.error(
                 "Channel notification failed for ticket=%s: %s",
@@ -504,7 +412,7 @@ async def send_ticket_notification(
             )
     else:
         logger.info(
-            "TEAMS_TEAM_ID or TEAMS_CHANNEL_ID not set — skipping channel notification."
+            "TEAMS_WEBHOOK_URL not set — skipping channel notification."
         )
 
     # 2. SMS if routing rule requires it
@@ -573,34 +481,16 @@ async def send_status_update_notification(
     any_sent = False
     card = build_status_update_card(ticket_data, old_status, new_status)
 
-    # Post to channel — thread reply if we have the original message ID
-    if TEAMS_TEAM_ID and TEAMS_CHANNEL_ID:
+    # Post to channel via webhook
+    if TEAMS_WEBHOOK_URL:
         try:
-            if teams_message_id:
-                # Try to reply to the existing thread
-                replied = await reply_to_channel_message(
-                    graph_client, TEAMS_TEAM_ID, TEAMS_CHANNEL_ID,
-                    teams_message_id, card
-                )
-                if replied:
-                    any_sent = True
-                else:
-                    # Original message was deleted — post a new message
-                    logger.info(
-                        "Thread reply failed (message may be deleted), posting new message."
-                    )
-                    new_msg_id = await send_channel_message(
-                        graph_client, TEAMS_TEAM_ID, TEAMS_CHANNEL_ID, card
-                    )
-                    if new_msg_id:
-                        any_sent = True
-            else:
-                # No thread ID — post a new channel message
-                new_msg_id = await send_channel_message(
-                    graph_client, TEAMS_TEAM_ID, TEAMS_CHANNEL_ID, card
-                )
-                if new_msg_id:
-                    any_sent = True
+            sent = await (
+                reply_to_channel_message(teams_message_id, card)
+                if teams_message_id
+                else send_channel_message(card)
+            )
+            if sent:
+                any_sent = True
         except Exception as e:
             logger.error(
                 "Status update channel notification failed for ticket=%s: %s",
@@ -641,31 +531,16 @@ async def send_resolution_notification(
     any_sent = False
     card = build_resolution_card(ticket_data, resolution_text)
 
-    # Post to channel — thread reply if we have the original message ID
-    if TEAMS_TEAM_ID and TEAMS_CHANNEL_ID:
+    # Post to channel via webhook
+    if TEAMS_WEBHOOK_URL:
         try:
-            if teams_message_id:
-                replied = await reply_to_channel_message(
-                    graph_client, TEAMS_TEAM_ID, TEAMS_CHANNEL_ID,
-                    teams_message_id, card
-                )
-                if replied:
-                    any_sent = True
-                else:
-                    logger.info(
-                        "Resolution thread reply failed, posting new message."
-                    )
-                    new_msg_id = await send_channel_message(
-                        graph_client, TEAMS_TEAM_ID, TEAMS_CHANNEL_ID, card
-                    )
-                    if new_msg_id:
-                        any_sent = True
-            else:
-                new_msg_id = await send_channel_message(
-                    graph_client, TEAMS_TEAM_ID, TEAMS_CHANNEL_ID, card
-                )
-                if new_msg_id:
-                    any_sent = True
+            sent = await (
+                reply_to_channel_message(teams_message_id, card)
+                if teams_message_id
+                else send_channel_message(card)
+            )
+            if sent:
+                any_sent = True
         except Exception as e:
             logger.error(
                 "Resolution channel notification failed for ticket=%s: %s",
