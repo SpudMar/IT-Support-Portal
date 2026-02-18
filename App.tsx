@@ -5,8 +5,10 @@ import ChatInterface from './components/ChatInterface';
 import AdminDashboard from './components/AdminDashboard';
 import KnowledgeBaseView from './components/KnowledgeBaseView';
 import Login from './components/Login';
+import { ToastProvider } from './components/ui/Toast';
 import { Ticket, TicketStatus, Criticality } from './types';
 import { apiService } from './services/apiService';
+import { offlineStore, syncManager } from './services/offlineStore';
 import { LayoutDashboard, MessageSquareText, BookOpen, UserCircle, LogOut, WifiOff, Loader2, History, AlertCircle } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -15,6 +17,7 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const { instance, accounts } = useMsal();
 
   // Ref to prevent multiple simultaneous ticket creations for the same session
@@ -23,7 +26,12 @@ const App: React.FC = () => {
   const userEmail = accounts[0]?.username;
   const userName = accounts[0]?.name;
 
+  // Check for IT.Admin role from Azure Entra ID App Roles (in ID token claims).
+  // Falls back to string matching until App Roles are configured in Azure Portal.
+  const idTokenClaims = accounts[0]?.idTokenClaims as Record<string, unknown> | undefined;
+  const userRoles = (idTokenClaims?.roles as string[]) || [];
   const isAdmin = accounts.length > 0 && (
+    userRoles.includes('IT.Admin') ||
     accounts[0].username.toLowerCase().includes('admin') ||
     accounts[0].name?.toLowerCase().includes('admin')
   );
@@ -53,6 +61,47 @@ const App: React.FC = () => {
         setIsSyncing(false);
       });
     }
+  }, [userEmail, userName]);
+
+  // Offline queue monitoring & sync
+  useEffect(() => {
+    // Initialise the offline store and get the current pending count
+    offlineStore.init().then(async () => {
+      const count = await offlineStore.getPendingCount();
+      setPendingCount(count);
+    });
+
+    // Subscribe to pending-count changes from SyncManager
+    const unsubscribe = syncManager.onCountChange((count) => {
+      setPendingCount(count);
+
+      // If tickets were synced (count decreased), refresh the ticket list
+      if (count === 0 && userEmail) {
+        apiService.searchTickets(userEmail).then((history) => {
+          const mappedHistory: Ticket[] = history.map((t) => ({
+            id: `SP-${t.sharepointId}`,
+            sharepointId: t.sharepointId,
+            summary: t.summary || 'IT Request',
+            userName: userName || 'Staff',
+            userEmail: userEmail,
+            status: (t.status as TicketStatus) || TicketStatus.NEW,
+            category: t.category || 'General',
+            criticality: (t.criticality as Criticality) || Criticality.MEDIUM,
+            createdAt: t.createdAt || Date.now(),
+            adminRequired: false,
+            transcript: t.transcript || [],
+          }));
+          setTickets(mappedHistory);
+        });
+      }
+    });
+
+    // Start listening for online/offline events and periodic retries
+    syncManager.startMonitoring();
+
+    return () => {
+      unsubscribe();
+    };
   }, [userEmail, userName]);
 
   const handleLogout = () => {
@@ -134,7 +183,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <>
+    <ToastProvider>
       <UnauthenticatedTemplate>
         <Login />
       </UnauthenticatedTemplate>
@@ -160,6 +209,13 @@ const App: React.FC = () => {
                       {isSyncing && (
                         <div className="flex items-center gap-1 text-[9px] text-primary_3 font-bold uppercase">
                           <Loader2 size={10} className="animate-spin" /> Syncing...
+                        </div>
+                      )}
+                      {pendingCount > 0 && (
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/20 rounded-full">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-amber-600">
+                            {pendingCount} queued
+                          </span>
                         </div>
                       )}
                     </div>
@@ -242,11 +298,11 @@ const App: React.FC = () => {
             )}
 
             {activeView === 'kb' && <KnowledgeBaseView />}
-            {activeView === 'admin' && isAdmin && <AdminDashboard tickets={tickets} onStatusChange={handleStatusChange} />}
+            {activeView === 'admin' && isAdmin && <AdminDashboard />}
           </main>
         </div>
       </AuthenticatedTemplate>
-    </>
+    </ToastProvider>
   );
 };
 

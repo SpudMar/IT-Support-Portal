@@ -1,0 +1,110 @@
+{
+  "model": {
+    "triage": "gemini-3-flash-preview",
+    "admin_expert": "gemini-3-pro-preview",
+    "thinking_budget": {
+      "triage": 24576,
+      "admin_expert": 32768
+    }
+  },
+  "conversation": {
+    "max_turns_before_escalation": 8,
+    "max_clarifying_questions": 2,
+    "self_service_attempts_before_escalation": 1,
+    "greeting_style": "warm_colleague",
+    "language": "en-AU",
+    "tone": "professional_friendly"
+  },
+  "rules": {
+    "never_ask": [
+      "location",
+      "availability",
+      "callback_time",
+      "phone_number",
+      "password",
+      "admin_credentials"
+    ],
+    "auto_captured_from_session": [
+      "user_name",
+      "user_email",
+      "location",
+      "availability",
+      "phone_number",
+      "department"
+    ],
+    "always_escalate_immediately": [
+      "phishing",
+      "suspicious_email",
+      "compromised_account",
+      "ransomware",
+      "data_breach",
+      "malware",
+      "unauthorised_access"
+    ],
+    "outage_threshold": 3,
+    "frustration_keywords": [
+      "ridiculous",
+      "frustrated",
+      "fed up",
+      "waste of time",
+      "been dealing with this",
+      "I'm lost",
+      "nothing works",
+      "I give up",
+      "this is broken",
+      "every single time"
+    ]
+  },
+  "sla_targets": {
+    "P1": {
+      "label": "Critical",
+      "response_minutes": 15,
+      "description": "Security incidents, outages affecting 3+ users, complete inability to work"
+    },
+    "P2": {
+      "label": "High",
+      "response_minutes": 60,
+      "description": "Single user unable to work, key application down"
+    },
+    "P3": {
+      "label": "Medium",
+      "response_minutes": 240,
+      "description": "Degraded functionality, workaround available"
+    },
+    "P4": {
+      "label": "Low",
+      "response_minutes": 480,
+      "description": "Feature requests, cosmetic issues, non-urgent"
+    }
+  },
+  "function_declarations": {
+    "search_knowledge_base": {
+      "enabled": true,
+      "call_first": true,
+      "description": "Search internal KB before suggesting fixes"
+    },
+    "log_incident": {
+      "enabled": true,
+      "triggers": [
+        "self_service_failed",
+        "admin_required",
+        "security_incident",
+        "user_frustrated",
+        "outage_detected"
+      ]
+    },
+    "capture_logistics": {
+      "enabled": false,
+      "reason": "Location/time/phone auto-captured from session context"
+    }
+  },
+  "brand": {
+    "name": "LotusAssist",
+    "display_name": "Lotus Assist",
+    "assistant_name": "Lotus Assist IT Support Co-pilot",
+    "admin_assistant_name": "Lotus Assist Senior IT Architect",
+    "region": "Australia",
+    "environment": "M365 Business Premium",
+    "user_count": "20-30"
+  }
+}

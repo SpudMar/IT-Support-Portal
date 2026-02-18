@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "description": "Self-service resolution scripts for common IT issues — one attempt before escalation",
+  "resolution_paths": [
+    {
+      "sub_category_id": "outlook_sync",
+      "title": "Outlook Not Syncing",
+      "steps": [
+        "Close Outlook completely (check it's not still running in the system tray)",
+        "Reopen Outlook and wait 2 minutes for it to sync",
+        "If still not syncing, go to File > Account Settings > Account Settings",
+        "Double-click your email account and untick 'Use Cached Exchange Mode'",
+        "Click Next, then tick 'Use Cached Exchange Mode' again",
+        "Click Next and Finish, then restart Outlook"
+      ],
+      "if_not_resolved": "Escalate — may need OST file rebuild or profile recreation (admin required)"
+    },
+    {
+      "sub_category_id": "outlook_cannot_send",
+      "title": "Outlook Cannot Send or Receive",
+      "steps": [
+        "Check you're connected to the internet (try opening a website)",
+        "In Outlook, go to the Send/Receive tab and click 'Send/Receive All Folders'",
+        "Check your Outbox — if emails are stuck there, open each one and click Send again",
+        "If that doesn't work, close Outlook, wait 30 seconds, and reopen it"
+      ],
+      "if_not_resolved": "Escalate — may be a mailbox issue, transport rule, or mailbox full"
+    },
+    {
+      "sub_category_id": "outlook_search",
+      "title": "Outlook Search Not Finding Emails",
+      "steps": [
+        "In Outlook, go to File > Options > Search",
+        "Click 'Indexing Options'",
+        "Click 'Advanced', then click 'Rebuild'",
+        "This will take a while — leave Outlook open and give it 30 minutes to reindex"
+      ],
+      "if_not_resolved": "Escalate — may need profile rebuild or Windows Search service restart (admin required)"
+    },
+    {
+      "sub_category_id": "outlook_calendar",
+      "title": "Outlook Calendar Not Showing Events",
+      "steps": [
+        "Make sure you have the right calendar selected in the left panel",
+        "Click View > Change View > Calendar to reset the view",
+        "If it's a shared calendar, right-click on 'Other Calendars' and select 'Add Calendar' > 'From Address Book'",
+        "Search for the calendar owner and add it"
+      ],
+      "if_not_resolved": "Escalate — calendar permissions may need to be granted by admin"
+    },
+    {
+      "sub_category_id": "teams_audio_video",
+      "title": "Teams Audio or Video Not Working",
+      "steps": [
+        "Click your profile picture in Teams > Settings > Devices",
+        "Check the correct microphone and speakers are selected",
+        "Click 'Make a test call' to verify",
+        "If your camera isn't showing, check if there's a physical privacy shutter or switch on your laptop",
+        "Try leaving the meeting and rejoining"
+      ],
+      "if_not_resolved": "Escalate — may need driver updates or device permissions (admin may be required)"
+    },
+    {
+      "sub_category_id": "teams_meetings",
+      "title": "Cannot Join Teams Meeting",
+      "steps": [
+        "Try clicking the meeting link again from your calendar invite",
+        "If the Teams app won't open, try joining from the browser instead — go to teams.microsoft.com",
+        "Clear your browser cache if joining from web (Ctrl+Shift+Delete)",
+        "Restart the Teams app (right-click the Teams icon in the system tray > Quit, then reopen)"
+      ],
+      "if_not_resolved": "Escalate — may be a Teams service issue or meeting policy restriction"
+    },
+    {
+      "sub_category_id": "teams_chat",
+      "title": "Teams Chat Messages Not Sending",
+      "steps": [
+        "Check your internet connection",
+        "Try sending a message to a different person to test",
+        "Restart Teams (right-click the Teams icon in the system tray > Quit, then reopen)",
+        "If on the web, try clearing your browser cache and refreshing"
+      ],
+      "if_not_resolved": "Escalate — may be a Teams service disruption"
+    },
+    {
+      "sub_category_id": "sharepoint_access",
+      "title": "Cannot Access SharePoint Site",
+      "steps": [
+        "Try opening the SharePoint link in a private/incognito browser window",
+        "Make sure you're signed in with your work account (not a personal Microsoft account)",
+        "Clear your browser cache and try again"
+      ],
+      "if_not_resolved": "Escalate — site permissions need to be granted by admin"
+    },
+    {
+      "sub_category_id": "onedrive_sync",
+      "title": "OneDrive Not Syncing Files",
+      "steps": [
+        "Click the OneDrive cloud icon in your system tray",
+        "Check if there are any sync errors shown — click on them for details",
+        "Try pausing sync for 2 minutes, then resuming (click the cloud icon > Help & Settings > Pause syncing)",
+        "If a specific file won't sync, check it's not open in another application"
+      ],
+      "if_not_resolved": "Escalate — may need OneDrive reset or storage quota increase"
+    },
+    {
+      "sub_category_id": "onedrive_storage",
+      "title": "OneDrive Storage Full",
+      "steps": [
+        "Click the OneDrive cloud icon in your system tray > Settings to see your storage usage",
+        "Open OneDrive in your browser (onedrive.com) and go to the Recycle Bin — empty it to free space",
+        "Review large files: sort by size and move any personal files to a USB or personal storage",
+        "Consider moving old project files to a SharePoint team site instead"
+      ],
+      "if_not_resolved": "Escalate — admin may need to increase your OneDrive quota"
+    },
+    {
+      "sub_category_id": "password_reset",
+      "title": "Password Reset / Can't Log In",
+      "steps": [
+        "Go to https://aka.ms/sspr (Microsoft Self-Service Password Reset)",
+        "Enter your work email address",
+        "Follow the verification steps (you'll need your phone for MFA)",
+        "Set a new password that meets the requirements (at least 8 characters, mix of uppercase, lowercase, and numbers)"
+      ],
+      "if_not_resolved": "Escalate — admin will need to manually reset the password or check account status"
+    },
+    {
+      "sub_category_id": "mfa_issues",
+      "title": "MFA / Authenticator Not Working",
+      "steps": [
+        "Make sure the time on your phone is set to automatic (this is the most common cause of MFA failures)",
+        "Try using the 'I can't use my Microsoft Authenticator app right now' link on the sign-in page for an alternative method",
+        "If you've changed phones, you'll need your IT admin to reset your MFA registration"
+      ],
+      "if_not_resolved": "Escalate — admin needs to reset MFA registration in Entra ID"
+    },
+    {
+      "sub_category_id": "account_locked",
+      "title": "Account Locked Out",
+      "steps": [
+        "Wait 15 minutes — most lockout policies automatically unlock after this period",
+        "Try logging in again with the correct password after waiting",
+        "If you're not sure of your password, use https://aka.ms/sspr to reset it"
+      ],
+      "if_not_resolved": "Escalate — admin will need to unlock the account in Entra ID and investigate the lockout source"
+    },
+    {
+      "sub_category_id": "office_apps_crash",
+      "title": "Office App Crashing or Freezing",
+      "steps": [
+        "Save any work you can and close the application",
+        "Open the app in Safe Mode: press Windows key, type the app name followed by /safe (e.g., 'outlook /safe')",
+        "If it works in Safe Mode, the issue is likely a bad add-in",
+        "Go to File > Options > Add-ins > Manage COM Add-ins > Go, and disable all add-ins",
+        "Restart the app normally and re-enable add-ins one at a time to find the culprit"
+      ],
+      "if_not_resolved": "Escalate — may need Office repair or reinstall (admin required)"
+    },
+    {
+      "sub_category_id": "office_apps_activation",
+      "title": "Office Shows Unlicensed / Activation Error",
+      "steps": [
+        "Close all Office apps",
+        "Open any Office app and go to File > Account",
+        "Click 'Sign Out' under User Information",
+        "Sign back in with your work email address",
+        "If it still shows unlicensed, try clicking 'Update Options' > 'Update Now'"
+      ],
+      "if_not_resolved": "Escalate — admin needs to check licence assignment in Microsoft 365 Admin Centre"
+    },
+    {
+      "sub_category_id": "laptop_performance",
+      "title": "Laptop Running Slowly",
+      "steps": [
+        "Restart your laptop (a proper restart, not just closing the lid)",
+        "Press Ctrl+Shift+Esc to open Task Manager",
+        "Click 'More Details' if needed, then sort by CPU or Memory to see what's using the most resources",
+        "Close any applications you're not actively using",
+        "If Chrome is using a lot of memory, try closing some browser tabs"
+      ],
+      "if_not_resolved": "Escalate — may need disk cleanup, startup program management, or hardware assessment"
+    },
+    {
+      "sub_category_id": "laptop_display",
+      "title": "External Display Not Working",
+      "steps": [
+        "Check the cable is firmly connected at both ends",
+        "Try pressing Windows key + P and selecting 'Extend' or 'Duplicate'",
+        "If using a dock, try connecting the monitor directly to the laptop instead",
+        "Try a different cable if you have one available"
+      ],
+      "if_not_resolved": "Escalate — may need driver updates or dock firmware update (admin required)"
+    },
+    {
+      "sub_category_id": "printer_issues",
+      "title": "Cannot Print",
+      "steps": [
+        "Make sure the printer is turned on and has paper",
+        "Check for any error lights or messages on the printer display",
+        "On your laptop, go to Settings > Printers & Scanners > select the printer > Open print queue",
+        "If there are stuck jobs, click Printer > Cancel All Documents",
+        "Try printing a test page from the printer's own menu"
+      ],
+      "if_not_resolved": "Escalate — may need printer driver reinstall or network printer reconfiguration"
+    },
+    {
+      "sub_category_id": "wifi_issues",
+      "title": "Wi-Fi Not Connecting",
+      "steps": [
+        "Click the Wi-Fi icon in the bottom-right of your screen",
+        "Make sure Wi-Fi is turned on (not in Airplane Mode)",
+        "Click 'Forget' on your current network, then reconnect by selecting it and entering the password",
+        "If that doesn't work, restart your laptop"
+      ],
+      "if_not_resolved": "Escalate — may be a network infrastructure issue or device driver problem"
+    },
+    {
+      "sub_category_id": "vpn_issues",
+      "title": "VPN Not Connecting",
+      "steps": [
+        "Make sure you're connected to the internet first (try opening a website)",
+        "Close the VPN client completely and reopen it",
+        "If it asks for credentials, make sure you're using your work email and current password",
+        "Try restarting your laptop and connecting again"
+      ],
+      "if_not_resolved": "Escalate — VPN server or configuration issue that needs admin attention"
+    },
+    {
+      "sub_category_id": "internet_slow",
+      "title": "Internet Running Slowly",
+      "steps": [
+        "Try running a speed test at fast.com",
+        "If you're on Wi-Fi, try moving closer to the router or access point",
+        "Close any applications that might be using bandwidth (video streaming, large downloads)",
+        "Try restarting your router if you're working from home (unplug for 30 seconds, then plug back in)"
+      ],
+      "if_not_resolved": "Escalate — may be an ISP issue or network infrastructure problem"
+    },
+    {
+      "sub_category_id": "internet_down",
+      "title": "No Internet Connection",
+      "steps": [
+        "Check if other devices can connect to the internet",
+        "Try restarting your laptop",
+        "If on Wi-Fi, try forgetting and reconnecting to the network",
+        "If at home, restart your modem/router (unplug for 30 seconds, plug back in, wait 2 minutes)"
+      ],
+      "if_not_resolved": "Escalate — if multiple users affected, this may be an outage"
+    },
+    {
+      "sub_category_id": "xero_login",
+      "title": "Cannot Log Into Xero",
+      "steps": [
+        "Try opening Xero in a private/incognito browser window",
+        "If using SSO, make sure you're clicking 'Log in with Google' or 'Log in with Microsoft' (whichever your org uses)",
+        "Clear your browser cache and cookies for xero.com",
+        "Try a different browser"
+      ],
+      "if_not_resolved": "Escalate — Xero account or SSO configuration may need admin attention"
+    },
+    {
+      "sub_category_id": "xero_bank_feeds",
+      "title": "Xero Bank Feeds Not Working",
+      "steps": [
+        "In Xero, go to Accounting > Bank Accounts",
+        "Click on the affected bank account",
+        "Check if there's a 'Reconnect' or 'Refresh' option for the bank feed",
+        "If prompted, log into your bank to re-authorise the connection"
+      ],
+      "if_not_resolved": "Escalate — bank feed disconnections sometimes need Xero support or admin reconfiguration"
+    },
+    {
+      "sub_category_id": "careview_login",
+      "title": "Cannot Log Into Careview",
+      "steps": [
+        "Check you're using the correct Careview URL (bookmark it if you haven't)",
+        "Try clearing your browser cache and cookies",
+        "Try opening Careview in a different browser",
+        "If you've recently changed your password, make sure you're using the new one"
+      ],
+      "if_not_resolved": "Escalate — Careview account or database access issue requiring admin"
+    },
+    {
+      "sub_category_id": "enablehr_login",
+      "title": "Cannot Log Into enableHR",
+      "steps": [
+        "Go to the enableHR login page and click 'Forgot Password' to reset",
+        "Check your email (including spam/junk) for the reset link",
+        "Try a different browser or clear your cache if the page isn't loading"
+      ],
+      "if_not_resolved": "Escalate — enableHR account issue requiring admin"
+    },
+    {
+      "sub_category_id": "laptop_docking",
+      "title": "Docking Station Not Working",
+      "steps": [
+        "Unplug the laptop from the dock, wait 10 seconds, and plug it back in",
+        "Try connecting the laptop directly to the dock (remove any USB-C adapters in between)",
+        "Check that the dock's power cable is firmly connected",
+        "Restart the laptop while it's connected to the dock"
+      ],
+      "if_not_resolved": "Escalate — dock firmware may need updating or the dock may be faulty"
+    }
+  ]
+}

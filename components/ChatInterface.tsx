@@ -1,9 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Camera, User, Bot, CheckCircle2, BookOpen, Info } from 'lucide-react';
-import { chatWithGemini, extractText } from '../services/geminiService';
+import { chatWithGemini } from '../services/geminiService';
 import { Message, Ticket, Criticality } from '../types';
-import { apiService } from '../services/apiService';
 
 interface ChatInterfaceProps {
   onTicketCreated: (ticket: Partial<Ticket>) => void;
@@ -12,7 +11,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTicket }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: "Hi! I'm your Lotus Assist IT Assistant. Are you having trouble with Microsoft 365, Xero, Careview, or something else? Just let me know!" }
+    { role: 'model', content: "G'day! I'm your Lotus Assist IT Co-pilot. What's going on \u2014 having trouble with something?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -51,57 +50,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
     setIsLoading(true);
 
     try {
+      // Backend handles all Gemini calls, KB search, and function execution server-side
       const response = await chatWithGemini(currentMessages, image || undefined);
-      let finalMessages: Message[] = [];
 
-      if (response.functionCalls && response.functionCalls.length > 0) {
-        for (const fc of response.functionCalls) {
-          if (fc.name === 'search_knowledge_base') {
-            const args = fc.args as { query: string };
-            const kbResults = await apiService.searchKnowledgeBase(args.query);
-            const kbSummary = kbResults.length > 0
-              ? `Matches found: ${kbResults.map(r => r.title).join(', ')}. Details: ${kbResults.map(r => r.content).join('\n')}`
-              : "No matches found.";
-
-            const followUpResponse = await chatWithGemini([
-              ...currentMessages,
-              { role: 'system', content: `[SYSTEM] Knowledge Base Results: ${kbSummary}` } as any
-            ]);
-            const kbText = extractText(followUpResponse);
-            if (kbText) finalMessages.push({ role: 'model', content: kbText });
-          } else if (fc.name === 'log_incident') {
-            const args = fc.args as any;
-            onTicketCreated({
-              summary: args.summary,
-              category: args.category,
-              criticality: args.criticality as Criticality,
-              adminRequired: args.admin_required,
-              transcript: currentMessages,
-              thinkingLog: `Agentic Decision: Issue detected in ${args.category}. Incident logged.`
-            });
-            setLastIncident(args);
-            const followUp = await chatWithGemini([...currentMessages, { role: 'system', content: `[SYSTEM] Incident logged for ${args.category}. Confirm to user.` } as any]);
-            const incidentText = extractText(followUp);
-            if (incidentText) finalMessages.push({ role: 'model', content: incidentText });
-          } else if (fc.name === 'capture_logistics') {
-            const args = fc.args as any;
-            onTicketCreated({
-              location: args.location,
-              availability: args.availability,
-              userPhone: args.phone,
-              transcript: currentMessages
-            });
-            const followUp = await chatWithGemini([...currentMessages, { role: 'system', content: '[SYSTEM] Logistics and contact phone captured.' } as any]);
-            const logisticsText = extractText(followUp);
-            if (logisticsText) finalMessages.push({ role: 'model', content: logisticsText });
-          }
-        }
-      } else {
-        const responseText = extractText(response);
-        if (responseText) finalMessages.push({ role: 'model', content: responseText });
+      // Handle incident data if the AI decided to log an incident
+      if (response.incidentData) {
+        const args = response.incidentData;
+        const priorityToCriticality: Record<string, Criticality> = {
+          'P1': Criticality.HIGH,
+          'P2': Criticality.HIGH,
+          'P3': Criticality.MEDIUM,
+          'P4': Criticality.LOW,
+        };
+        onTicketCreated({
+          summary: args.summary,
+          category: args.category,
+          criticality: priorityToCriticality[args.priority] || Criticality.MEDIUM,
+          adminRequired: args.admin_required,
+          transcript: currentMessages,
+          thinkingLog: [
+            `Priority: ${args.priority}`,
+            args.sub_category ? `Sub-category: ${args.sub_category}` : null,
+            args.self_service_attempted ? `Self-service attempted: ${args.self_service_result || 'not_resolved'}` : 'Self-service: not attempted',
+            args.security_flag ? 'SECURITY INCIDENT' : null,
+            args.outage_flag ? 'POTENTIAL OUTAGE' : null,
+            args.ai_recommended_actions?.length ? `Recommended: ${args.ai_recommended_actions.join('; ')}` : null,
+          ].filter(Boolean).join(' | ')
+        });
+        setLastIncident(args);
       }
 
-      setMessages(prev => [...prev, ...finalMessages]);
+      // Add the AI response text to the conversation
+      if (response.text) {
+        setMessages(prev => [...prev, { role: 'model', content: response.text }]);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       setMessages(prev => [...prev, { role: 'model', content: "Network error. Try again?" }]);
@@ -122,7 +104,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
   return (
     <div className="flex flex-col h-[65vh] md:h-[70vh] max-w-4xl mx-auto bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-gray-100 ring-1 ring-black/5">
       <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-pale_grey/30">
-        {messages.map((msg, idx) => (
+        {messages.filter(msg => msg.role !== 'system').map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex gap-4 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md ${msg.role === 'user' ? 'bg-primary_2 text-white' : 'bg-white text-primary_1 border border-gray-100'}`}>
@@ -144,7 +126,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onTicketCreated, resumeTi
             <CheckCircle2 size={24} className="text-primary_4" />
             <div>
               <p className="font-display font-bold text-primary_1">Incident Logged: {lastIncident.summary}</p>
-              <p className="text-[10px] text-primary_2 font-bold uppercase tracking-widest">Routing to: {lastIncident.category} Admin</p>
+              <p className="text-[10px] text-primary_2 font-bold uppercase tracking-widest">
+                {lastIncident.priority} {lastIncident.security_flag ? '| SECURITY' : ''} {lastIncident.outage_flag ? '| OUTAGE' : ''} | Routing to: {lastIncident.category} Admin
+              </p>
             </div>
           </div>
         )}

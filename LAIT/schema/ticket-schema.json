@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Lotus Assist IT Ticket",
+  "description": "Structured ticket output from AI triage conversation",
+  "type": "object",
+  "required": ["summary", "category", "sub_category", "priority", "admin_required", "self_service_attempted"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Concise 10-word technical summary of the issue",
+      "maxLength": 120
+    },
+    "category": {
+      "type": "string",
+      "description": "Top-level issue category",
+      "enum": [
+        "Microsoft 365",
+        "Identity & Access",
+        "Xero",
+        "Careview",
+        "enableHR",
+        "Hardware",
+        "Network & Connectivity",
+        "Security",
+        "General"
+      ]
+    },
+    "sub_category": {
+      "type": "string",
+      "description": "Specific sub-category from the taxonomy (e.g., 'Outlook - Sync Issues', 'VPN Issues')"
+    },
+    "priority": {
+      "type": "string",
+      "description": "Incident priority level",
+      "enum": ["P1", "P2", "P3", "P4"]
+    },
+    "priority_justification": {
+      "type": "string",
+      "description": "Brief explanation for why this priority was assigned"
+    },
+    "admin_required": {
+      "type": "boolean",
+      "description": "Whether the fix requires admin/elevated access"
+    },
+    "self_service_attempted": {
+      "type": "boolean",
+      "description": "Whether a self-service resolution was attempted before escalation"
+    },
+    "self_service_result": {
+      "type": "string",
+      "description": "Outcome of the self-service attempt",
+      "enum": ["resolved", "not_resolved", "not_attempted", "security_bypass"]
+    },
+    "diagnostic_data": {
+      "type": "object",
+      "description": "Structured diagnostic information gathered during conversation",
+      "properties": {
+        "affected_application": {
+          "type": "string",
+          "description": "Primary application affected"
+        },
+        "error_message": {
+          "type": "string",
+          "description": "Exact error message if provided by user"
+        },
+        "device_type": {
+          "type": "string",
+          "description": "Type of device affected",
+          "enum": ["laptop", "desktop", "mobile", "tablet", "printer", "other"]
+        },
+        "affected_user_count": {
+          "type": "integer",
+          "description": "Number of users affected (1 = single user, 3+ = potential outage)",
+          "minimum": 1
+        },
+        "issue_duration": {
+          "type": "string",
+          "description": "How long the issue has been occurring"
+        },
+        "steps_already_tried": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What the user or AI has already tried"
+        }
+      }
+    },
+    "ai_recommended_actions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "AI-suggested next steps for the IT admin"
+    },
+    "outage_flag": {
+      "type": "boolean",
+      "description": "Whether this appears to be part of a broader outage",
+      "default": false
+    },
+    "security_flag": {
+      "type": "boolean",
+      "description": "Whether this is a security-related incident requiring immediate attention",
+      "default": false
+    },
+    "user_context": {
+      "type": "object",
+      "description": "Auto-captured user session data (not collected via conversation)",
+      "properties": {
+        "user_name": { "type": "string" },
+        "user_email": { "type": "string" },
+        "phone": { "type": "string" },
+        "location": { "type": "string" },
+        "department": { "type": "string" }
+      }
+    },
+    "transcript": {
+      "type": "array",
+      "description": "Full conversation history",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string", "enum": ["user", "model", "system"] },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "thinking_log": {
+      "type": "string",
+      "description": "AI reasoning/diagnostic chain for admin review"
+    }
+  }
+}
