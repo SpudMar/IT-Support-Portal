@@ -462,10 +462,12 @@ async def send_ticket_notification(
     logic that was previously in main.py's POST /api/tickets endpoint.
 
     Actions:
-    1. Looks up admin routing for the ticket's category.
-    2. Sends an Adaptive Card to the IT Teams channel (if TEAMS_TEAM_ID set).
-    3. Sends a DM to the assigned admin.
-    4. Sends an SMS if routing says so.
+    1. Posts an Adaptive Card to the #it-support-tickets Teams channel.
+    2. Looks up routing to check if SMS is required, then sends SMS if so.
+
+    DMs to individuals are intentionally omitted — the channel post notifies
+    all admins who are members of the channel. The Managed Identity has
+    ChannelMessage.Send but not Chat.Create (DM scopes are delegated-only).
 
     Notification failures are logged but never raised — ticket operations
     must never be blocked by notification errors.
@@ -487,19 +489,7 @@ async def send_ticket_notification(
 
     category = ticket_data.get("category", "General")
 
-    # 1. Get routing info
-    try:
-        admin_info = await get_routing_info(
-            graph_client, site_id, routing_list_id, category
-        )
-    except Exception as e:
-        logger.error("Routing lookup failed during notification: %s", e)
-        admin_info = {
-            "email": FALLBACK_ADMIN_EMAIL,
-            "phone": FALLBACK_ADMIN_PHONE,
-        }
-
-    # 2. Post Adaptive Card to Teams channel (if configured)
+    # 1. Post Adaptive Card to #it-support-tickets Teams channel
     if TEAMS_TEAM_ID and TEAMS_CHANNEL_ID:
         try:
             card = build_new_ticket_card(ticket_data)
@@ -517,31 +507,15 @@ async def send_ticket_notification(
             "TEAMS_TEAM_ID or TEAMS_CHANNEL_ID not set — skipping channel notification."
         )
 
-    # 3. Send DM to assigned admin
-    admin_email = admin_info.get("email") if admin_info else None
-    if admin_email:
-        try:
-            criticality = ticket_data.get("criticality", "Medium")
-            summary = ticket_data.get("summary", "No summary")
-            user_name = ticket_data.get("userName", "Unknown")
-            ticket_id = ticket_data.get("sharepointId", "N/A")
+    # 2. SMS if routing rule requires it
+    try:
+        admin_info = await get_routing_info(
+            graph_client, site_id, routing_list_id, category
+        )
+    except Exception as e:
+        logger.error("Routing lookup failed during notification: %s", e)
+        admin_info = {"phone": FALLBACK_ADMIN_PHONE, "notify_sms": False}
 
-            msg_text = (
-                f"<b>New {criticality} Ticket #{ticket_id}</b><br/>"
-                f"User: {user_name}<br/>"
-                f"Issue: {summary}<br/>"
-                f"Category: {category}"
-            )
-
-            dm_sent = await send_teams_message(graph_client, admin_email, msg_text)
-            result["dm_sent"] = dm_sent
-        except Exception as e:
-            logger.error(
-                "DM notification failed for admin=%s ticket=%s: %s",
-                admin_email, ticket_data.get("sharepointId", "unknown"), e
-            )
-
-    # 4. Send SMS if routing says so
     admin_phone = admin_info.get("phone") if admin_info else None
     notify_sms = admin_info.get("notify_sms", False) if admin_info else False
     if admin_phone and notify_sms:
@@ -578,11 +552,11 @@ async def send_status_update_notification(
     teams_message_id: str | None,
 ) -> bool:
     """
-    Sends a status update notification to the Teams channel thread and DM.
+    Posts a status update card to the #it-support-tickets channel thread.
 
-    If teams_message_id exists and the channel is configured, replies to the
-    existing thread. If not, posts a new channel message. Also sends a DM
-    to the assigned admin.
+    If teams_message_id exists, replies to the original thread. Otherwise
+    posts a new channel message. DMs to individuals are omitted — the
+    channel thread is the single source of truth for ticket updates.
 
     Notification failures are logged but never raised.
 
@@ -594,12 +568,12 @@ async def send_status_update_notification(
         teams_message_id: ID of the original channel message for threading (or None).
 
     Returns:
-        True if at least one notification was sent, False otherwise.
+        True if the notification was sent, False otherwise.
     """
     any_sent = False
     card = build_status_update_card(ticket_data, old_status, new_status)
 
-    # 1. Channel notification (thread or new message)
+    # Post to channel — thread reply if we have the original message ID
     if TEAMS_TEAM_ID and TEAMS_CHANNEL_ID:
         try:
             if teams_message_id:
@@ -633,27 +607,6 @@ async def send_status_update_notification(
                 ticket_data.get("sharepointId", "unknown"), e
             )
 
-    # 2. DM to admin about the status change
-    try:
-        admin_email = ticket_data.get("adminEmail") or FALLBACK_ADMIN_EMAIL
-        ticket_id = ticket_data.get("sharepointId") or ticket_data.get("id", "N/A")
-        summary = ticket_data.get("summary", "")
-
-        dm_text = (
-            f"<b>Ticket #{ticket_id} Status Updated</b><br/>"
-            f"{old_status} &rarr; {new_status}<br/>"
-            f"Summary: {summary}"
-        )
-
-        dm_sent = await send_teams_message(graph_client, admin_email, dm_text)
-        if dm_sent:
-            any_sent = True
-    except Exception as e:
-        logger.error(
-            "Status update DM failed for ticket=%s: %s",
-            ticket_data.get("sharepointId", "unknown"), e
-        )
-
     return any_sent
 
 
@@ -668,11 +621,11 @@ async def send_resolution_notification(
     teams_message_id: str | None,
 ) -> bool:
     """
-    Sends a resolution notification to the Teams channel thread.
+    Posts a resolution card to the #it-support-tickets channel thread.
 
-    Posts the resolution card as a thread reply (or new message if no
-    thread exists). If a resolution text is provided and KB generation
-    is flagged in the ticket data, the card will include a KB badge.
+    Posts as a thread reply if teams_message_id is available, otherwise
+    posts a new channel message. DMs to individuals are omitted — the
+    channel thread is the single source of truth for ticket lifecycle.
 
     Notification failures are logged but never raised.
 
@@ -688,7 +641,7 @@ async def send_resolution_notification(
     any_sent = False
     card = build_resolution_card(ticket_data, resolution_text)
 
-    # 1. Channel notification (thread or new message)
+    # Post to channel — thread reply if we have the original message ID
     if TEAMS_TEAM_ID and TEAMS_CHANNEL_ID:
         try:
             if teams_message_id:
@@ -718,26 +671,5 @@ async def send_resolution_notification(
                 "Resolution channel notification failed for ticket=%s: %s",
                 ticket_data.get("sharepointId", "unknown"), e
             )
-
-    # 2. DM to admin about resolution
-    try:
-        admin_email = ticket_data.get("adminEmail") or FALLBACK_ADMIN_EMAIL
-        ticket_id = ticket_data.get("sharepointId") or ticket_data.get("id", "N/A")
-        summary = ticket_data.get("summary", "")
-
-        dm_text = (
-            f"<b>Ticket #{ticket_id} Resolved</b><br/>"
-            f"Summary: {summary}<br/>"
-            f"Resolution: {resolution_text[:300] if resolution_text else 'N/A'}"
-        )
-
-        dm_sent = await send_teams_message(graph_client, admin_email, dm_text)
-        if dm_sent:
-            any_sent = True
-    except Exception as e:
-        logger.error(
-            "Resolution DM failed for ticket=%s: %s",
-            ticket_data.get("sharepointId", "unknown"), e
-        )
 
     return any_sent
