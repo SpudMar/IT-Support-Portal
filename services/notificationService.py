@@ -234,7 +234,7 @@ async def get_routing_info(graph_client: GraphServiceClient, site_id: str, routi
     """
     Returns routing info dict for the given category by querying the
     'AdminRouting' SharePoint list.
-    Schema expected: Title (Category), AdminEmail, AdminPhone, NotifySMS.
+    SharePoint fields: Title (Category), field_2 (Person→Email), PrimaryPhone, field_4 (NotifySMS).
 
     Falls back to FALLBACK_ADMIN_EMAIL / FALLBACK_ADMIN_PHONE env vars.
     """
@@ -267,20 +267,21 @@ async def get_routing_info(graph_client: GraphServiceClient, site_id: str, routi
             item = result.value[0]
             fields = item.fields.additional_data if item.fields else {}
 
-            # AdminEmail — may be Person/Group field (nested object) or plain text
-            admin_email_field = fields.get("AdminEmail")
+            # field_2 is a Person/Group lookup — SharePoint returns a
+            # list of objects: [{"Email": "...", "LookupValue": "..."}]
+            admin_email_raw = fields.get("field_2")
             email = None
-            if isinstance(admin_email_field, dict):
-                email = admin_email_field.get("Email") or admin_email_field.get("LookupValue")
-            elif isinstance(admin_email_field, str):
-                email = admin_email_field
+            if isinstance(admin_email_raw, list) and admin_email_raw:
+                email = admin_email_raw[0].get("Email") or admin_email_raw[0].get("LookupValue")
+            elif isinstance(admin_email_raw, dict):
+                email = admin_email_raw.get("Email") or admin_email_raw.get("LookupValue")
+            elif isinstance(admin_email_raw, str):
+                email = admin_email_raw
 
-            notify_sms = fields.get("NotifySMS", False)
+            notify_sms = fields.get("field_4", False)
 
-            # PrimaryPhone — try display name first, then common internal names
-            phone = (fields.get("PrimaryPhone")
-                     or fields.get("field_5")
-                     or fields.get("field_6"))
+            # PrimaryPhone — try display name first, then internal field name
+            phone = fields.get("PrimaryPhone") or fields.get("field_5")
             # Ensure E.164 format with + prefix for ClickSend
             if phone and isinstance(phone, str):
                 phone = phone.strip()
