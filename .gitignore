@@ -28,6 +28,12 @@ dist-ssr
 *.sln
 *.sw?
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+
 # Exclude Power BI files
 PowerBi/
 *PowerBI*
