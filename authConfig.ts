@@ -40,3 +40,10 @@ export const tokenRequest = {
  * and by apiService.ts for silent token acquisition.
  */
 export const msalInstance = new PublicClientApplication(msalConfig);
+
+/**
+ * MSAL v3 requires an explicit initialize() call before any token
+ * operations (acquireTokenSilent, loginPopup, etc.).  This promise
+ * resolves once the instance is fully ready.
+ */
+export const msalReady: Promise<void> = msalInstance.initialize();

@@ -5,7 +5,7 @@ import {
   AdminTicketUpdate, RoutingRule, AdminNote,
 } from '../types';
 import { offlineStore, syncManager } from './offlineStore';
-import { msalInstance, tokenRequest } from '../authConfig';
+import { msalInstance, tokenRequest, msalReady } from '../authConfig';
 
 /**
  * For a unified deployment (FastAPI serving React),
@@ -19,6 +19,9 @@ const API_BASE = "/api";
  * if the silent call fails (e.g., no cached token or consent required).
  */
 export async function getAuthHeaders(): Promise<Record<string, string>> {
+  // Ensure MSAL is fully initialized before any token operation
+  await msalReady;
+
   const accounts = msalInstance.getAllAccounts();
   if (accounts.length === 0) {
     throw new Error("No authenticated user. Please sign in.");
