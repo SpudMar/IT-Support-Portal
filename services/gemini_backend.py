@@ -54,8 +54,8 @@ def _load_resolution_paths() -> str:
 GEMINI_API_KEY = os.getenv("API_KEY", "")
 
 # --- Models ---
-MODEL_FLASH = "gemini-2.5-flash-preview-05-20"
-MODEL_PRO = "gemini-2.5-pro-preview-05-10"
+MODEL_FLASH = "gemini-2.5-flash"
+MODEL_PRO = "gemini-2.5-pro"
 
 # --- System Instruction ---
 _BASE_SYSTEM_INSTRUCTION = """
