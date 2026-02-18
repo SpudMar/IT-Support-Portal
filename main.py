@@ -199,6 +199,9 @@ async def health():
     return {"status": "online", "identity": "ManagedIdentity"}
 
 
+# Max conversation turns before forcing escalation (from LAIT conversation-config.json)
+MAX_CHAT_TURNS = 8
+
 # --- Gemini AI Chat Endpoints (server-side) ---
 
 
@@ -218,6 +221,34 @@ async def chat_endpoint(
 
     if not messages:
         raise HTTPException(status_code=400, detail="Messages are required")
+
+    # Enforce max turn limit (LAIT spec: max_turns_before_escalation = 8)
+    user_turns = sum(1 for m in messages if m.get("role") == "user")
+    if user_turns >= MAX_CHAT_TURNS:
+        logger.info(
+            "Auto-escalating chat after %d user turns for %s", user_turns, user.email
+        )
+        return {
+            "text": (
+                "I can see we've been at this for a while without getting it sorted — I'm sorry about that. "
+                "I've flagged this for your IT admin and they'll be in touch with you shortly. "
+                "You don't need to do anything else on your end."
+            ),
+            "function_calls": [],
+            "incident_data": {
+                "summary": "Issue unresolved after extended troubleshooting — auto-escalated",
+                "category": "General",
+                "priority": "P2",
+                "admin_required": True,
+                "self_service_attempted": True,
+                "self_service_result": "not_resolved",
+                "security_flag": False,
+                "outage_flag": False,
+                "priority_justification": f"Auto-escalated after {user_turns} conversation turns without resolution.",
+                "ai_recommended_actions": ["Review full conversation transcript for context before calling user"],
+            },
+            "error": None,
+        }
 
     # Call Gemini
     result = await chat_with_gemini(messages, image)

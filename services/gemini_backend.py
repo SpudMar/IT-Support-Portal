@@ -4,6 +4,7 @@ import json
 import time
 import base64
 import logging
+import pathlib
 from typing import Optional
 
 from google import genai
@@ -16,6 +17,38 @@ if not logger.handlers:
     handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s %(name)s: %(message)s"))
     logger.addHandler(handler)
 
+
+def _load_resolution_paths() -> str:
+    """Load curated resolution steps from LAIT spec. Called once at module load."""
+    try:
+        paths_file = (
+            pathlib.Path(__file__).parent.parent
+            / "LAIT"
+            / "self-service"
+            / "resolution-paths.json"
+        )
+        with open(paths_file) as f:
+            data = json.load(f)
+        lines = [
+            "\n\nSELF-SERVICE RESOLUTION SCRIPTS:",
+            "When a user's issue matches a sub-category below, follow EXACTLY these steps.",
+            "Do not improvise alternative steps — these are tested for the Lotus Assist M365 environment.\n",
+        ]
+        for path in data.get("resolution_paths", []):
+            lines.append(f"[{path['title']}]")
+            for i, step in enumerate(path["steps"], 1):
+                lines.append(f"  {i}. {step}")
+            lines.append(f"  > If not resolved: {path['if_not_resolved']}\n")
+        result = "\n".join(lines)
+        logger.info(
+            "Loaded %d resolution paths from LAIT spec.", len(data.get("resolution_paths", []))
+        )
+        return result
+    except Exception as e:
+        logger.warning("Could not load resolution paths from LAIT spec: %s", e)
+        return ""
+
+
 # --- API Key ---
 # Azure App Settings exposes this as API_KEY
 GEMINI_API_KEY = os.getenv("API_KEY", "")
@@ -24,8 +57,8 @@ GEMINI_API_KEY = os.getenv("API_KEY", "")
 MODEL_FLASH = "gemini-2.5-flash-preview-05-20"
 MODEL_PRO = "gemini-2.5-pro-preview-05-10"
 
-# --- System Instruction (ported exactly from constants.tsx) ---
-SYSTEM_INSTRUCTION = """
+# --- System Instruction ---
+_BASE_SYSTEM_INSTRUCTION = """
 You are the "Lotus Assist IT Support Co-pilot" — the front-line triage assistant for a small Australian business running Microsoft 365 Business Premium (20-30 users). You work alongside a single IT administrator.
 
 VOICE & TONE:
@@ -39,7 +72,10 @@ CORE RULES:
 2. SECURITY ALWAYS ESCALATES: Phishing, suspicious emails, compromised accounts, ransomware, malware, data breaches = immediate P1 escalation. No self-service. Tell user help is on the way, don't click anything.
 3. NEVER ASK FOR LOCATION OR TIME: These are auto-captured from the session. Never ask "Where are you?" or "When are you available?" — the system handles this.
 4. NEVER ASK FOR PASSWORDS: Never suggest fixes requiring local admin rights without flagging admin_required: true.
-5. FRUSTRATION DETECTION: If user says "I'm lost," "this is ridiculous," "nothing works," etc. — immediately escalate to P2 with empathy. Don't push more troubleshooting.
+5. FRUSTRATION DETECTION: Escalate IMMEDIATELY (minimum P2, with empathy) if the user says any of the following or expresses similar sentiment:
+   "ridiculous", "frustrated", "fed up", "waste of time", "been dealing with this",
+   "I'm lost", "nothing works", "I give up", "this is broken", "every single time"
+   Do NOT push more troubleshooting when frustration is detected. Get a human involved immediately.
 6. OUTAGE DETECTION: If context indicates 3+ users with the same issue, flag as potential outage, escalate to P1.
 7. MULTIMODAL: If user describes an error they can't articulate, ask for a screenshot/photo.
 8. THINK BEFORE ACTING: Use your reasoning budget to determine quick-fix vs systemic failure.
@@ -64,7 +100,7 @@ SUPPORTED CATEGORIES (use these for classification):
 CONVERSATION FLOW:
 Phase 1: Greet warmly, ask what's going on naturally
 Phase 2: 1-2 clarifying questions max, classify the issue
-Phase 3: Offer ONE self-service fix (skip for security)
+Phase 3: Offer ONE self-service fix using the scripts below (skip for security)
 Phase 4: If fixed then confirm and close. If not then call log_incident immediately.
 
 FUNCTION CALLING:
@@ -72,6 +108,9 @@ FUNCTION CALLING:
 - Call 'log_incident' when: self-service failed, admin needed, security detected, user frustrated, outage detected.
 - Do NOT call 'capture_logistics'. Location/time/phone are auto-captured from the session.
 """
+
+# Augment with curated resolution paths from LAIT spec (loaded once at module init)
+SYSTEM_INSTRUCTION = _BASE_SYSTEM_INSTRUCTION + _load_resolution_paths()
 
 # --- Function Declarations (ported exactly from geminiService.ts) ---
 SEARCH_KB_DECL = types.FunctionDeclaration(
@@ -142,6 +181,38 @@ LOG_INCIDENT_DECL = types.FunctionDeclaration(
                 type="ARRAY",
                 description="Suggested next steps for the IT admin.",
                 items=types.Schema(type="STRING"),
+            ),
+            "priority_justification": types.Schema(
+                type="STRING",
+                description="Brief explanation of why this priority level was assigned (e.g. 'User completely unable to work, primary application down').",
+            ),
+            "diagnostic_data": types.Schema(
+                type="OBJECT",
+                description="Structured diagnostic information gathered during the conversation.",
+                properties={
+                    "error_message": types.Schema(
+                        type="STRING",
+                        description="Exact error message reported by the user, if any.",
+                    ),
+                    "device_type": types.Schema(
+                        type="STRING",
+                        description="Type of device affected.",
+                        enum=["laptop", "desktop", "mobile", "tablet", "printer", "other"],
+                    ),
+                    "affected_user_count": types.Schema(
+                        type="INTEGER",
+                        description="Number of users affected. 1 = single user, 3+ = potential outage.",
+                    ),
+                    "issue_duration": types.Schema(
+                        type="STRING",
+                        description="How long the issue has been occurring (e.g. 'since this morning', 'about an hour').",
+                    ),
+                    "steps_already_tried": types.Schema(
+                        type="ARRAY",
+                        description="Steps the user or AI already attempted before escalating.",
+                        items=types.Schema(type="STRING"),
+                    ),
+                },
             ),
         },
         required=["summary", "category", "priority", "admin_required", "self_service_attempted"],
