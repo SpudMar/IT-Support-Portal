@@ -36,7 +36,7 @@ from services.gemini_backend import chat_with_gemini, chat_with_admin_expert, ge
 #   field_7=Criticality  field_8=Status  field_9=Transcript  field_10=ThinkingLog
 #
 # KB List (a035c017): internal names MATCH display names (Category, Answer, Keywords)
-# Routing List (5b899e4a): field_1=AdminName field_2=AdminEmail(text) field_3=BackupAdmin field_4=NotifySMS(bool)
+# Routing List (5b899e4a): field_1=AdminName field_2=AdminEmail(Person) field_3=BackupAdmin field_4=NotifySMS(bool) PrimaryPhone=phone
 
 # ──────────────────────────────────────────────
 # Logging
@@ -1180,22 +1180,22 @@ async def admin_get_routing(
             for item in result.value:
                 f = item.fields.additional_data if item.fields else {}
 
-                # AdminEmail may be a Person field (dict) or plain text
-                admin_email_field = f.get("AdminEmail", "")
+                # field_2 is a Person/Group lookup — SharePoint returns a
+                # list of objects: [{"Email": "...", "LookupValue": "..."}]
+                admin_email_raw = f.get("field_2", "")
                 email = ""
-                if isinstance(admin_email_field, dict):
-                    email = admin_email_field.get("Email") or admin_email_field.get(
+                if isinstance(admin_email_raw, list) and admin_email_raw:
+                    email = admin_email_raw[0].get("Email") or admin_email_raw[0].get(
                         "LookupValue", ""
                     )
-                elif isinstance(admin_email_field, str):
-                    email = admin_email_field
+                elif isinstance(admin_email_raw, dict):
+                    email = admin_email_raw.get("Email") or admin_email_raw.get(
+                        "LookupValue", ""
+                    )
+                elif isinstance(admin_email_raw, str):
+                    email = admin_email_raw
 
-                phone = (
-                    f.get("PrimaryPhone", "")
-                    or f.get("field_5", "")
-                    or f.get("field_6", "")
-                    or ""
-                )
+                phone = f.get("PrimaryPhone", "") or f.get("field_5", "") or ""
                 if isinstance(phone, (int, float)):
                     phone = str(int(phone))
 
@@ -1205,7 +1205,7 @@ async def admin_get_routing(
                         "category": f.get("Title", ""),
                         "adminEmail": email,
                         "adminPhone": str(phone),
-                        "notifySms": bool(f.get("NotifySMS", False)),
+                        "notifySms": bool(f.get("field_4", False)),
                     }
                 )
 
