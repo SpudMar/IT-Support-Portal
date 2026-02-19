@@ -385,7 +385,7 @@ async def chat_with_gemini(messages: list, image_data: str | None = None) -> dic
         return {
             "text": "",
             "function_calls": [],
-            "error": "Something went wrong with the AI service. Please try again shortly.",
+            "error": f"DEBUG: {error_msg}",
         }
 
 
