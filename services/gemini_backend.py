@@ -51,7 +51,7 @@ def _load_resolution_paths() -> str:
 
 # --- API Key ---
 # Azure App Settings exposes this as API_KEY
-GEMINI_API_KEY = os.getenv("API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("API_KEY", "")
 
 # --- Models ---
 MODEL_FLASH = "gemini-2.5-flash"
