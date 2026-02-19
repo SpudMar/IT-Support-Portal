@@ -50,8 +50,13 @@ def _load_resolution_paths() -> str:
 
 
 # --- API Key ---
-# Azure App Settings exposes this as API_KEY
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("API_KEY", "")
+def _get_gemini_key() -> str:
+    """Read key at call time so Azure env vars are always visible."""
+    key = os.getenv("GEMINI_API_KEY") or os.getenv("API_KEY", "")
+    if not key:
+        logger.error("GEMINI_API_KEY is empty! GEMINI_API_KEY=%r  API_KEY=%r",
+                      os.getenv("GEMINI_API_KEY"), os.getenv("API_KEY"))
+    return key
 
 # --- Models ---
 MODEL_FLASH = "gemini-2.5-flash"
@@ -342,7 +347,7 @@ async def chat_with_gemini(messages: list, image_data: str | None = None) -> dic
     """
     start = time.time()
     try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
+        client = genai.Client(api_key=_get_gemini_key())
 
         # Validate image if present
         if image_data:
@@ -402,7 +407,7 @@ async def chat_with_admin_expert(ticket_context: dict, messages: list) -> dict:
     """
     start = time.time()
     try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
+        client = genai.Client(api_key=_get_gemini_key())
 
         system_prompt = f"""
     You are the "Lotus Assist Senior IT Architect". You are assisting an IT Admin in resolving an incident.
@@ -462,7 +467,7 @@ async def generate_kb_from_ticket(summary: str, transcript: list, category: str)
     """
     start = time.time()
     try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
+        client = genai.Client(api_key=_get_gemini_key())
 
         conversation_text = "\n".join(
             [f"{m.get('role', 'unknown')}: {m.get('content', '')}" for m in transcript]
