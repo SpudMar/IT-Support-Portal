@@ -530,16 +530,16 @@ async def search_tickets(email: str, user: UserContext = Depends(get_current_use
     try:
         # StaffEmail is the column name
         query_filter = f"fields/field_3 eq '{email}'"  # field_3 = StaffEmail
+        _tickets_rc = RequestConfiguration(
+            query_parameters=_ItemsRB.ItemsRequestBuilderGetQueryParameters(
+                expand=["fields"], filter=query_filter
+            )
+        )
+        _tickets_rc.headers.add("Prefer", "HonorNonIndexedQueriesWarningMayFailRandomly")
         result = (
             await graph_client.sites.by_site_id(SITE_ID)
             .lists.by_list_id(LIST_ID)
-            .items.get(
-                request_configuration=RequestConfiguration(
-                    query_parameters=_ItemsRB.ItemsRequestBuilderGetQueryParameters(
-                        expand=["fields"], filter=query_filter
-                    )
-                )
-            )
+            .items.get(request_configuration=_tickets_rc)
         )
         tickets = []
         if result and result.value:
