@@ -15,6 +15,8 @@ from pydantic import BaseModel
 # Azure & Microsoft Graph
 from azure.identity import DefaultAzureCredential
 from msgraph import GraphServiceClient
+from kiota_abstractions.base_request_configuration import RequestConfiguration
+from msgraph.generated.sites.item.lists.item.items.items_request_builder import ItemsRequestBuilder as _ItemsRB
 import httpx
 
 # Auth middleware
@@ -279,11 +281,10 @@ async def chat_endpoint(
                         await graph_client.sites.by_site_id(SITE_ID)
                         .lists.by_list_id(kb_list_id)
                         .items.get(
-                            request_configuration=lambda x: (
-                                setattr(
-                                    x.query_parameters, "expand", ["fields"]
-                                ),
-                                setattr(x.query_parameters, "top", 50),
+                            request_configuration=RequestConfiguration(
+                                query_parameters=_ItemsRB.ItemsRequestBuilderGetQueryParameters(
+                                    expand=["fields"], top=50
+                                )
                             )
                         )
                     )
@@ -533,9 +534,10 @@ async def search_tickets(email: str, user: UserContext = Depends(get_current_use
             await graph_client.sites.by_site_id(SITE_ID)
             .lists.by_list_id(LIST_ID)
             .items.get(
-                request_configuration=lambda x: (
-                    setattr(x.query_parameters, "expand", ["fields"]),
-                    setattr(x.query_parameters, "filter", query_filter),
+                request_configuration=RequestConfiguration(
+                    query_parameters=_ItemsRB.ItemsRequestBuilderGetQueryParameters(
+                        expand=["fields"], filter=query_filter
+                    )
                 )
             )
         )
@@ -678,9 +680,10 @@ async def search_knowledge_base(
             await graph_client.sites.by_site_id(SITE_ID)
             .lists.by_list_id(kb_list_id)
             .items.get(
-                request_configuration=lambda x: (
-                    setattr(x.query_parameters, "expand", ["fields"]),
-                    setattr(x.query_parameters, "top", 50),
+                request_configuration=RequestConfiguration(
+                    query_parameters=_ItemsRB.ItemsRequestBuilderGetQueryParameters(
+                        expand=["fields"], top=50
+                    )
                 )
             )
         )
@@ -1168,9 +1171,10 @@ async def admin_get_routing(
             await graph_client.sites.by_site_id(SITE_ID)
             .lists.by_list_id(ROUTING_LIST_ID)
             .items.get(
-                request_configuration=lambda x: (
-                    setattr(x.query_parameters, "expand", ["fields"]),
-                    setattr(x.query_parameters, "top", 50),
+                request_configuration=RequestConfiguration(
+                    query_parameters=_ItemsRB.ItemsRequestBuilderGetQueryParameters(
+                        expand=["fields"], top=50
+                    )
                 )
             )
         )
