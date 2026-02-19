@@ -48,6 +48,8 @@ from msgraph.generated.models.chat import Chat
 from msgraph.generated.models.chat_type import ChatType
 from msgraph.generated.models.aad_user_conversation_member import AadUserConversationMember
 from msgraph.generated.users.users_request_builder import UsersRequestBuilder
+from kiota_abstractions.base_request_configuration import RequestConfiguration
+from msgraph.generated.sites.item.lists.item.items.items_request_builder import ItemsRequestBuilder as _ItemsRB
 
 from services.teams_cards import (
     build_new_ticket_card,
@@ -161,11 +163,13 @@ async def get_user_id_by_email(graph_client: GraphServiceClient, email: str):
     Look up a user's Entra ID (GUID) using their email.
     """
     try:
-        result = await graph_client.users.get(
-            request_configuration=lambda x: setattr(
-                x.query_parameters, "filter", f"mail eq '{email}'"
+        from msgraph.generated.users.users_request_builder import UsersRequestBuilder as _UsersRB
+        _users_rc = RequestConfiguration(
+            query_parameters=_UsersRB.UsersRequestBuilderGetQueryParameters(
+                filter=f"mail eq '{email}'"
             )
         )
+        result = await graph_client.users.get(request_configuration=_users_rc)
         if result and result.value:
             return result.value[0].id
         return None
@@ -256,11 +260,14 @@ async def get_routing_info(graph_client: GraphServiceClient, site_id: str, routi
     try:
         query_filter = f"fields/Title eq '{category}'"
 
-        result = await graph_client.sites.by_site_id(site_id).lists.by_list_id(routing_list_id).items.get(
-            request_configuration=lambda x: (
-                setattr(x.query_parameters, "expand", ["fields"]),
-                setattr(x.query_parameters, "filter", query_filter)
+        _routing_rc = RequestConfiguration(
+            query_parameters=_ItemsRB.ItemsRequestBuilderGetQueryParameters(
+                expand=["fields"], filter=query_filter
             )
+        )
+        _routing_rc.headers.add("Prefer", "HonorNonIndexedQueriesWarningMayFailRandomly")
+        result = await graph_client.sites.by_site_id(site_id).lists.by_list_id(routing_list_id).items.get(
+            request_configuration=_routing_rc
         )
 
         if result and result.value:
